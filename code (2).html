@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ROUBE UM BRAINROT 3D - MULTIPLAYER REAL</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:Arial,Black,Impact,sans-serif}
+body{overflow:hidden;background:#87CEEB;color:#fff;user-select:none}
+#game{position:fixed;inset:0} canvas{display:block}
+#hud{position:fixed;top:10px;left:10px;right:10px;display:flex;gap:8px;flex-wrap:wrap;z-index:20;pointer-events:none;max-width:calc(100% - 180px)}
+.pill{background:rgba(0,0,0,.72);border:2px solid #FFD700;border-radius:20px;padding:8px 13px;font-weight:900;font-size:13px;pointer-events:auto}
+.pill b{color:#7CFC00}.pill span{color:#FFD700}
+button{cursor:pointer;border:0}
+.btn{background:#FFD700;color:#000;padding:10px 14px;border-radius:14px;font-weight:900;border:3px solid #000;box-shadow:0 4px 0 #000;pointer-events:auto}
+.btn:active{transform:translateY(3px);box-shadow:none}
+.btn.blue{background:#00BFFF;color:#fff}.btn.pink{background:#FF69B4;color:#fff}.btn.green{background:#32CD32}.btn.red{background:#FF4444;color:#fff}.btn.purple{background:#AA00FF;color:#fff}
+#bottom{position:fixed;left:10px;right:10px;bottom:10px;display:flex;justify-content:space-between;align-items:flex-end;z-index:20;pointer-events:none}
+#joy{width:120px;height:120px;background:rgba(0,0,0,.35);border:3px solid #fff;border-radius:50%;position:relative;pointer-events:auto;display:none}
+#knob{width:55px;height:55px;background:#FFD700;border-radius:50%;position:absolute;left:32px;top:32px;border:3px solid #000}
+#actions{display:flex;gap:10px;pointer-events:auto}
+.act{width:78px;height:78px;border-radius:50%;font-size:13px;font-weight:900;border:3px solid #000;box-shadow:0 5px 0 #000}
+#msg{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#111;border:3px solid #FFD700;padding:12px 18px;border-radius:15px;z-index:30;font-weight:900;text-align:center;max-width:92%;display:none}
+#panel{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:50;display:none;overflow:auto;padding:15px}
+.card{background:#1e1e2e;border:3px solid #FFD700;border-radius:20px;padding:16px;max-width:700px;margin:0 auto}
+.card h2{color:#FFD700;margin-bottom:10px}.card h3{margin:14px 0 6px;color:#00FFFF}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.item{background:#2a2a3d;border:2px solid #555;border-radius:12px;padding:10px;font-size:13px}
+.item b{color:#FFD700}.item .r{font-size:11px;padding:2px 6px;border-radius:20px;display:inline-block}
+.item.locked{opacity:.75;background:#111}.item.owned{border-color:#32CD32;background:#1e3320}
+#close{float:right;background:#f44;color:#fff;padding:6px 12px;border-radius:10px;font-weight:900}
+#start{position:fixed;inset:0;background:linear-gradient(#FF6B00,#FFD700,#00BFFF);z-index:100;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px}
+#start h1{font-size:52px;text-shadow:4px 4px 0 #000;line-height:.9}#start p{margin:12px 0;font-weight:900;color:#000}
+#announce{position:fixed;top:115px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,#ff00ff,#00ffff);padding:10px 18px;border-radius:20px;font-weight:900;z-index:25;display:none;text-align:center}
+#eventBar{position:fixed;top:155px;left:50%;transform:translateX(-50%);background:#FF0000;padding:7px 14px;border-radius:20px;font-weight:900;z-index:25;display:none}
+input,select{width:100%;padding:10px;border-radius:10px;border:2px solid #FFD700;margin:5px 0;background:#111;color:#fff;font-weight:700}
+.progressWrap{background:#000;border:2px solid #FFD700;border-radius:20px;height:26px;overflow:hidden;margin:8px 0}
+#progressBar{height:100%;background:linear-gradient(90deg,#FFD700,#32CD32);width:0%;transition:.4s;text-align:center;font-size:12px;line-height:26px;color:#000;font-weight:900}
+.filterBar{display:flex;gap:8px;margin:10px 0;flex-wrap:wrap}.emojiBig{font-size:36px;display:block;text-align:center;margin:4px 0}
+#minimapWrap{position:fixed;right:10px;top:10px;z-index:25;background:rgba(0,0,0,.75);border:3px solid #FFD700;border-radius:16px;padding:6px;text-align:center;pointer-events:auto}
+#minimap{width:150px;height:150px;border-radius:12px;background:#2E7D32;display:block;cursor:pointer}
+#minimapLabel{font-size:11px;font-weight:900;color:#FFD700;margin-top:3px}
+#bigMap{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:80;display:none;align-items:center;justify-content:center;flex-direction:column;padding:15px}
+#bigMap canvas{width:min(92vw,500px);height:min(92vw,500px);background:#2E7D32;border:4px solid #FFD700;border-radius:20px}
+#mpWrap{position:fixed;left:10px;top:135px;z-index:24;background:rgba(0,0,0,.85);border:3px solid #00FFFF;border-radius:14px;padding:8px;width:220px;pointer-events:auto}
+#chatBox{position:fixed;left:10px;bottom:150px;z-index:60;background:#111;border:3px solid #00FFFF;border-radius:14px;padding:10px;width:270px;display:none}
+#mpToast{position:fixed;top:190px;left:50%;transform:translateX(-50%);background:#00FFFF;color:#000;padding:8px 14px;border-radius:20px;font-weight:900;z-index:35;display:none}
+@media(max-width:768px){#joy{display:block}.pill{font-size:11px;padding:6px 8px}#start h1{font-size:36px}.grid{grid-template-columns:1fr}#minimap{width:110px;height:110px}#hud{max-width:calc(100% - 130px)}#mpWrap{width:175px;top:170px}}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="hud">
+  <div class="pill">💰 $<span id="money">0</span> <b>+<span id="income">0</span>/s</b></div>
+  <div class="pill">⭐ Rebirth: <span id="reb">0</span></div>
+  <div class="pill">🧠 <span id="count">0</span>/8</div>
+  <button class="btn purple" onclick="openIndex()">📖 ÍNDICE</button>
+  <button class="btn blue" onclick="openShop()">🛒 LOJA</button>
+  <button class="btn pink" onclick="openInv()">🎒 BASE</button>
+  <button class="btn green" onclick="doRebirth()">🔁 REBIRTH</button>
+  <button class="btn" onclick="openCodes()">🎁 CÓDIGOS</button>
+  <button class="btn red" onclick="openAdmin()">👑 ADMIN v999...</button>
+  <button class="btn" onclick="toggleLock()">🔒 PORTÃO</button>
+</div>
+<div id="minimapWrap"><canvas id="minimap" width="150" height="150" onclick="openBigMap()"></canvas><div id="minimapLabel">🗺️ MAPA - CLIQUE P/ AMPLIAR</div><div style="font-size:10px">🟡 VOCÊ • 🟢 SUA BASE • 🔴 INIMIGO • 🩷 AMIGO</div></div>
+<div id="bigMap"><h2 style="color:#FFD700;margin-bottom:10px">🗺️ MAPA COMPLETO - 16 BASES</h2><canvas id="bigMapCanvas" width="500" height="500" onclick="clickBigMap(event)"></canvas><p style="font-size:12px;margin:8px 0">Clique em um lugar do mapa para TELEPORTAR!</p><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button class="btn green" onclick="teleportTo(0,52)">🏠 MINHA BASE</button><button class="btn" onclick="teleportTo(0,8)">🌟 ESTEIRA</button><button class="btn red" onclick="teleportTo(-35,-35)">⚔️ ARENA</button><button class="btn blue" onclick="teleportTo(35,-35)">🛒 LOJA</button><button class="btn" onclick="closeBigMap()">❌ FECHAR</button></div><div id="mapInfo" style="margin-top:10px;font-size:13px;background:#111;padding:8px 12px;border-radius:10px">📍 Clique no mapa para ver a posição</div></div>
+<div id="mpWrap"><div style="font-weight:900;color:#00FFFF;font-size:13px">🌐 MULTIPLAYER REAL <span id="mpCount" style="color:#FFD700">1 ONLINE</span></div><div style="font-size:11px;color:#aaa">Seu nome: <b id="myNameLabel" style="color:#fff"></b></div><div id="mpStatus" style="font-size:11px;color:#FFD700;margin:4px 0">🔴 Offline - Crie uma sala!</div><div id="mpList" style="font-size:11px;max-height:90px;overflow:auto;margin:5px 0">🟢 Você</div><button class="btn green" style="width:100%;padding:7px;font-size:12px" onclick="createRoom()">🏠 CRIAR SALA</button><button class="btn blue" style="width:100%;padding:7px;font-size:12px;margin-top:4px" onclick="joinRoomPrompt()">🚪 ENTRAR NA SALA</button><button class="btn" style="width:100%;padding:7px;font-size:12px;margin-top:4px" onclick="openChat()">💬 CHAT</button><div id="roomCodeBox" style="display:none;background:#000;border:2px dashed #FFD700;border-radius:10px;padding:8px;margin-top:6px;text-align:center"><div style="font-size:11px">📋 SEU CÓDIGO:</div><div id="roomCode" style="font-size:20px;font-weight:900;color:#FFD700;letter-spacing:2px">----</div><button class="btn" style="padding:5px;font-size:11px;margin-top:4px" onclick="copyRoomCode()">📋 COPIAR CÓDIGO</button><div style="font-size:10px;color:#aaa;margin-top:3px">Manda pro seu amigo!</div></div></div>
+<div id="chatBox"><b style="color:#00FFFF">💬 CHAT GLOBAL</b> <button style="float:right;background:#f44;color:#fff;border-radius:8px;padding:2px 8px" onclick="closeChat()">X</button><div id="chatMsgs" style="height:140px;overflow:auto;background:#000;border-radius:8px;padding:6px;margin:8px 0;font-size:12px"></div><input id="chatIn" placeholder="Digite e aperte Enter..." onkeydown="if(event.key==='Enter') sendChat()"><button class="btn blue" style="width:100%" onclick="sendChat()">ENVIAR</button></div>
+<div id="mpToast"></div>
+<div id="msg"></div><div id="announce"></div><div id="eventBar">🌟 EVENTO ATIVO</div>
+<div id="bottom"><div id="joy"><div id="knob"></div></div><div id="actions"><button class="act" style="background:#00BFFF" onclick="jump()">⬆<br>PULAR</button><button class="act" style="background:#FFD700" onclick="interact()">✋<br>AÇÃO</button></div></div>
+<div id="panel"><div class="card"><button id="close" onclick="closePanel()">X FECHAR</button><div id="panelContent"></div></div></div>
+<div id="start"><div><h1>🧠 ROUBE<br>UM BRAINROT<br>🎮 3D</h1><p>16 BASES • MULTIPLAYER REAL • ÍNDICE • MAPA • ADMIN v999...</p><p>WASD + MOUSE + E | CELULAR: JOYSTICK + AÇÃO</p><button class="btn" style="font-size:22px;padding:16px 30px" onclick="startGame()">▶ JOGAR AGORA</button><p style="font-size:12px">Admin: admin123 • Crie uma sala e jogue com amigo!</p></div></div>
+
+<script>
+const ADMIN_VERSION="9999999999999999999999999999999";
+let scene,camera,renderer,player,keys={},money=0,income=0,rebirth=0,speedMult=1,lockBase=false,owned=[],conveyor=[],bots=[],dayTime=0,golden=false,indexFilter="all",adminTab="dinheiro",godMode=false,flyMode=false,noclip=false;
+let playerPos={x:0,z:18},velY=0,onGround=true,camAngle=0,camPitch=.45,joy={x:0,y:0};
+let fakePlayers=[{name:"xX_Sahur_Xx",money:12000,level:12,banned:false},{name:"Tralalero_Pro",money:85000,level:25,banned:false},{name:"Noob123",money:500,level:2,banned:false},{name:"BallerinaQueen",money:45000,level:18,banned:false},{name:"CrocodiloRei",money:200000,level:34,banned:false},{name:"AdminFake",money:999999,level:99,banned:false}];
+const TYPES=[
+ {n:"Noobini Pizzanini",c:0xFFD700,rar:"Comum",price:50,inc:2,shape:"pizza",emoji:"🍕",desc:"O clássico!",where:"Esteira / Loja"},
+ {n:"Tralalero Tralala",c:0x00BFFF,rar:"Raro",price:250,inc:8,shape:"shark",emoji:"🦈",desc:"Tubarão com tênis.",where:"Esteira / Roubo"},
+ {n:"Bombardiro Crocodilo",c:0x32CD32,rar:"Épico",price:800,inc:25,shape:"croc",emoji:"🐊",desc:"Crocodilo bombardeiro.",where:"Esteira / Roubo"},
+ {n:"Tung Tung Tung Sahur",c:0x8B4513,rar:"Épico",price:1500,inc:45,shape:"log",emoji:"🪵",desc:"TUNG TUNG SAHUR!",where:"Esteira / Roubo"},
+ {n:"Ballerina Cappuccina",c:0xFF69B4,rar:"Lendário",price:4000,inc:120,shape:"ballerina",emoji:"🩰",desc:"Dança e gera muito dinheiro.",where:"Esteira / Roubo"},
+ {n:"Cappuccino Assassino",c:0x654321,rar:"Lendário",price:8000,inc:250,shape:"cup",emoji:"☕",desc:"Silencioso. Rico.",where:"Esteira / Roubo"},
+ {n:"GOLDEN BRAINROT",c:0xFFD700,rar:"SECRETO",price:25000,inc:1000,shape:"gold",emoji:"👑",desc:"Só em evento dourado!",where:"Evento / Admin"},
+ {n:"DIAMOND SAHUR",c:0x00FFFF,rar:"MÍTICO",price:60000,inc:2500,shape:"diamond",emoji:"💎",desc:"O mais raro!",where:"Evento / Admin"},
+];
+const RARCOL={Comum:"#aaa",Raro:"#00BFFF","Épico":"#AA00FF","Lendário":"#FFD700",SECRETO:"#FF0000","MÍTICO":"#00FFFF"};
+const COMMAND_DB={evento:["dourado","sorte","lucky","rainbow","meteoro","tsunami","natal","admin","halloween","pascoa","invasao","apocalipse"],clima:["dia","noite","por-do-sol","chuva","neve","neblina","tempestade","aurora"],hora:Array.from({length:24},(_,i)=>i),velocidade:[1,2,3,5,10,15,20,30,50,100,200,500,1000]};
+function save(){localStorage.setItem("brb3d",JSON.stringify({money,rebirth,owned:owned.map(o=>o.type),speedMult}))}
+function load(){try{let d=JSON.parse(localStorage.getItem("brb3d"));if(d){money=d.money||0;rebirth=d.rebirth||0;speedMult=d.speedMult||1;return d.owned||[]}}catch(e){}return[]}
+function showMsg(t){let m=document.getElementById("msg");m.innerText=t;m.style.display="block";setTimeout(()=>m.style.display="none",2800)}
+function announce(t){let a=document.getElementById("announce");a.innerText=t;a.style.display="block";setTimeout(()=>a.style.display="none",5000)}
+function totalComandos(){return (1000*8*100+18*100+24*16*8*12+50000).toLocaleString("pt-BR")}
+function makeBrainrot(type,x,z,scale=1){let g=new THREE.Group();let mat=new THREE.MeshLambertMaterial({color:type.c});let body=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,1.2),mat);body.position.y=1;g.add(body);let head=new THREE.Mesh(new THREE.BoxGeometry(1,.8,1),new THREE.MeshLambertMaterial({color:0xffffff}));head.position.y=2;g.add(head);let e1=new THREE.Mesh(new THREE.SphereGeometry(.14,8,8),new THREE.MeshLambertMaterial({color:0}));e1.position.set(-.2,2.1,.51);g.add(e1);let e2=e1.clone();e2.position.x=.2;g.add(e2);if(type.shape=="shark"){let f=new THREE.Mesh(new THREE.ConeGeometry(.4,.8,4),mat);f.position.y=2.6;g.add(f)}if(type.shape=="pizza"){let p=new THREE.Mesh(new THREE.CylinderGeometry(.7,.1,.3,6),new THREE.MeshLambertMaterial({color:0xFFA500}));p.position.y=2.6;g.add(p)}if(type.shape=="croc"){let s=new THREE.Mesh(new THREE.BoxGeometry(1.4,.4,.8),mat);s.position.set(0,1.8,.7);g.add(s)}if(type.shape=="ballerina"){let sk=new THREE.Mesh(new THREE.CylinderGeometry(.9,.2,.5,8),new THREE.MeshLambertMaterial({color:0xFF69B4}));sk.position.y=.4;g.add(sk)}if(type.shape=="cup"){let cu=new THREE.Mesh(new THREE.CylinderGeometry(.5,.4,.6,10),new THREE.MeshLambertMaterial({color:0xffffff}));cu.position.y=2.6;g.add(cu)}if(type.shape=="gold"||type.shape=="diamond"){let cr=new THREE.Mesh(new THREE.CylinderGeometry(.3,.5,.4,5),new THREE.MeshLambertMaterial({color:0xFFD700}));cr.position.y=2.7;g.add(cr)}g.position.set(x,0,z);g.scale.setScalar(scale);g.userData={type};scene.add(g);return g}
+function label(text,x,y,z,color="#fff"){let c=document.createElement("canvas");c.width=512;c.height=128;let ctx=c.getContext("2d");ctx.fillStyle="#000";ctx.fillRect(0,0,512,128);ctx.fillStyle=color;ctx.font="900 48px Arial";ctx.textAlign="center";ctx.fillText(text,256,80);let t=new THREE.CanvasTexture(c);let s=new THREE.Sprite(new THREE.SpriteMaterial({map:t}));s.scale.set(10,2.5,1);s.position.set(x,y,z);scene.add(s);return s}
+function init(){
+ scene=new THREE.Scene();scene.background=new THREE.Color(0x87CEEB);scene.fog=new THREE.Fog(0x87CEEB,60,180);
+ camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,500);renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);document.getElementById("game").appendChild(renderer.domElement);
+ scene.add(new THREE.AmbientLight(0xffffff,.8));let sun=new THREE.DirectionalLight(0xffffff,1);sun.position.set(30,50,20);scene.add(sun);
+ let ground=new THREE.Mesh(new THREE.PlaneGeometry(220,220),new THREE.MeshLambertMaterial({color:0x4CAF50}));ground.rotation.x=-Math.PI/2;scene.add(ground);
+ let road=new THREE.Mesh(new THREE.PlaneGeometry(220,10),new THREE.MeshLambertMaterial({color:0x333333}));road.rotation.x=-Math.PI/2;road.position.y=.02;scene.add(road);
+ let belt=new THREE.Mesh(new THREE.BoxGeometry(120,1,6),new THREE.MeshLambertMaterial({color:0x222222}));belt.position.set(0,.5,0);scene.add(belt);
+ let beltTop=new THREE.Mesh(new THREE.BoxGeometry(120,.2,5),new THREE.MeshLambertMaterial({color:0xFFD700}));beltTop.position.set(0,1.1,0);scene.add(beltTop);
+ label("🌟 ESTEIRA - APERTE E PARA COMPRAR 🌟",0,9,0,"#FFD700");
+ for(let i=0;i<16;i++){let a=(i/16)*Math.PI*2;let x=Math.cos(a)*52,z=Math.sin(a)*52;let isMine=i==0;let col=isMine?0xFFD700:0xFF4444;let base=new THREE.Mesh(new THREE.BoxGeometry(16,.4,16),new THREE.MeshLambertMaterial({color:col}));base.position.set(x,.2,z);scene.add(base);let wall=new THREE.Mesh(new THREE.BoxGeometry(16,4,.5),new THREE.MeshLambertMaterial({color:isMine?0xFFD700:0x888888}));wall.position.set(x,2,z-7.5);scene.add(wall);let gate=new THREE.Mesh(new THREE.BoxGeometry(4,4,.3),new THREE.MeshLambertMaterial({color:isMine?0x00FF00:0xFF0000}));gate.position.set(x,2,z+7.5);scene.add(gate);label(isMine?"🏠 SUA BASE":"BASE "+(i+1),x,8,z,"#fff");if(!isMine&&i<10){let t=TYPES[Math.floor(Math.random()*5)];let b=makeBrainrot(t,x+(Math.random()*6-3),z+(Math.random()*4-2),.9);b.userData.owner=i;b.userData.isBot=true;bots.push(b)}for(let k=0;k<2;k++){let tr=new THREE.Mesh(new THREE.CylinderGeometry(.3,.3,2,6),new THREE.MeshLambertMaterial({color:0x8B4513}));tr.position.set(x+8,1,z+6);scene.add(tr);let lv=new THREE.Mesh(new THREE.SphereGeometry(1.5,8,8),new THREE.MeshLambertMaterial({color:0x228B22}));lv.position.set(x+8,3,z+6);scene.add(lv)}}
+ label("⚔️ ARENA PVP",-35,7,-35,"#FF0000");let arena=new THREE.Mesh(new THREE.CylinderGeometry(10,.2,1,16),new THREE.MeshLambertMaterial({color:0xFF0000}));arena.position.set(-35,.5,-35);scene.add(arena);
+ label("🛒 LOJA",35,7,-35,"#00FFFF");label("🎁 CÓDIGOS: BRAINROT / RICO / SAHUR",35,5,-35,"#fff");
+ player=new THREE.Group();let pb=new THREE.Mesh(new THREE.BoxGeometry(1,1.6,.6),new THREE.MeshLambertMaterial({color:0x00BFFF}));pb.position.y=1;player.add(pb);let ph=new THREE.Mesh(new THREE.BoxGeometry(.9,.9,.9),new THREE.MeshLambertMaterial({color:0xFFDBAC}));ph.position.y=2.2;player.add(ph);player.position.set(0,0,18);scene.add(player);
+ let saved=load();saved.forEach((ti,idx)=>{let t=TYPES[ti]||TYPES[0];let b=makeBrainrot(t,-5+(idx%4)*3,52-Math.floor(idx/4)*3,.9);owned.push({mesh:b,type:ti})});
+ recalc();spawnConveyor();setInterval(spawnConveyor,6000);setInterval(()=>{money+=income;updateHUD();save()},1000);setInterval(()=>{if(Math.random()<.18)triggerRandomEvent()},20000);animate();
+}
+function recalc(){income=owned.reduce((s,o)=>s+(TYPES[o.type].inc*(1+rebirth*.5)),0);updateHUD()}
+function updateHUD(){document.getElementById("money").innerText=Math.floor(money);document.getElementById("income").innerText=Math.floor(income);document.getElementById("reb").innerText=rebirth;document.getElementById("count").innerText=owned.length}
+function spawnConveyor(){conveyor.forEach(c=>scene.remove(c.mesh));conveyor=[];for(let i=0;i<4;i++){let isSecret=Math.random()<.08;let t=isSecret?TYPES[6+Math.floor(Math.random()*2)]:TYPES[Math.floor(Math.random()*6)];let m=makeBrainrot(t,-45+i*28,0,1.1);m.userData.price=t.price*(golden?2:1);m.userData.type=t;conveyor.push({mesh:m,type:t,price:m.userData.price})}}
+function interact(){let nearest=null,nd=999;conveyor.forEach(c=>{let d=player.position.distanceTo(c.mesh.position);if(d<nd){nd=d;nearest=c}});if(nearest&&nd<6){if(money>=nearest.price&&owned.length<8){money-=nearest.price;let b=makeBrainrot(nearest.type,-5+(owned.length%4)*3,52-Math.floor(owned.length/4)*3,.9);owned.push({mesh:b,type:TYPES.indexOf(nearest.type)});scene.remove(nearest.mesh);conveyor=conveyor.filter(x=>x!==nearest);recalc();save();showMsg("✅ Comprou "+nearest.type.n+"!")}else showMsg(money<nearest.price?"❌ Sem dinheiro! Precisa $"+nearest.price:"❌ Base cheia!");return}let bot=null,bd=999;bots.forEach(b=>{let d=player.position.distanceTo(b.position);if(d<bd){bd=d;bot=b}});if(bot&&bd<5){if(lockBase){showMsg("🔒 Sua base está trancada!");return}let t=bot.userData.type;bots=bots.filter(x=>x!==bot);scene.remove(bot);if(owned.length<8){let nb=makeBrainrot(t,-5+(owned.length%4)*3,52-Math.floor(owned.length/4)*3,.9);owned.push({mesh:nb,type:TYPES.indexOf(t)})}recalc();save();money+=500;showMsg("😈 ROUBOU "+t.n+" +$500!");announce("🚨 ROUBO! Alguém roubou "+t.n);sendMp({type:"steal",name:myName,brainrot:t.n});return}if(player.position.distanceTo(new THREE.Vector3(-35,0,-35))<10){money+=200;showMsg("⚔️ Vitória na Arena! +$200");return}showMsg("👋 Vá até a ESTEIRA para comprar ou BASE VERMELHA para roubar!")}
+function jump(){if(onGround){velY=9;onGround=false}}
+function doRebirth(){let cost=5000*(rebirth+1);if(money>=cost){money=0;rebirth++;owned.forEach(o=>scene.remove(o.mesh));owned=[];recalc();save();showMsg("🔁 REBIRTH! Renda +50%!")}else showMsg("Precisa $"+cost+" para Rebirth")}
+function toggleLock(){lockBase=!lockBase;showMsg(lockBase?"🔒 Base TRANCADA por 30s":"🔓 Base ABERTA");if(lockBase)setTimeout(()=>{lockBase=false;showMsg("🔓 Portão abriu!")},30000)}
+function triggerRandomEvent(){let ev=["🌧️ CHUVA DE LUCKY BLOCKS! +$1000","🌟 BRAINROT DOURADO NA ESTEIRA!","🍀 EVENTO DE SORTE! Renda x2 por 20s","👑 EVENTO ADMIN!"];let pick=ev[Math.floor(Math.random()*ev.length)];announce(pick);document.getElementById("eventBar").style.display="block";setTimeout(()=>document.getElementById("eventBar").style.display="none",8000);if(pick.includes("LUCKY"))money+=1000;if(pick.includes("DOURADO")){golden=true;spawnConveyor();setTimeout(()=>golden=false,20000)}if(pick.includes("SORTE")){income*=2;setTimeout(()=>recalc(),20000)}}
+function openPanel(html){document.getElementById("panelContent").innerHTML=html;document.getElementById("panel").style.display="block"}
+function closePanel(){document.getElementById("panel").style.display="none"}
+function setIndexFilter(f){indexFilter=f;openIndex()}
+function openIndex(){let ownedTypes=[...new Set(owned.map(o=>o.type))];let total=TYPES.length,got=ownedTypes.length,pct=Math.round(got/total*100);let h=`<h2>📖 ÍNDICE DE BRAINROTS</h2><p><b>${got}/${total} Colecionados</b> • Falta: <b style="color:#FF4444">${total-got}</b></p><div class="progressWrap"><div id="progressBar" style="width:${pct}%">${pct}%</div></div><div class="filterBar"><button class="btn ${indexFilter=="all"?"blue":""}" onclick="setIndexFilter('all')">📖 TODOS (${total})</button><button class="btn green ${indexFilter=="got"?"blue":""}" onclick="setIndexFilter('got')">✅ TEM (${got})</button><button class="btn red ${indexFilter=="missing"?"blue":""}" onclick="setIndexFilter('missing')">🔒 FALTA (${total-got})</button></div><div class="grid">`;TYPES.forEach((t,i)=>{let has=ownedTypes.includes(i);let qty=owned.filter(o=>o.type==i).length;if(indexFilter=="got"&&!has)return;if(indexFilter=="missing"&&has)return;if(has){h+=`<div class="item owned"><span class="emojiBig">${t.emoji}</span><b>${t.n}</b> <span style="color:#32CD32">✅ TEM x${qty}</span><br><span class="r" style="background:${RARCOL[t.rar]};color:#000">${t.rar}</span><br>💰 $${t.price} • 🟢 +${t.inc}/s<br><span style="font-size:11px;color:#ccc">${t.desc}</span><br>📍 ${t.where}<br><button class="btn green" style="margin-top:6px;width:100%" onclick="buyDirect(${i})">COMPRAR +1</button></div>`}else{h+=`<div class="item locked"><span class="emojiBig">❓</span><b style="color:#888">??? BLOQUEADO ???</b> <span style="color:#FF4444">🔒 FALTA</span><br><span class="r" style="background:#333">????</span><br>💰 ??? • 🟢 +???/s<br><span style="font-size:11px;color:#aaa">Colete para revelar!</span><br>📍 Dica: ${t.where}<br><button class="btn" style="margin-top:6px;width:100%" onclick="showMsg('Vá para a esteira ou roube!');closePanel()">🔍 ONDE CONSEGUIR</button></div>`}});h+=`</div>`;if(got==total)h+=`<h3 style="text-align:center;color:#FFD700">🏆 COLEÇÃO COMPLETA!</h3>`;openPanel(h)}
+function openShop(){let h="<h2>🛒 LOJA</h2><div class='grid'>";h+=`<div class='item'><b>⚡ Velocidade +50%</b><br>$800<br><button class='btn' onclick='buySpeed()'>COMPRAR</button></div><div class='item'><b>🔒 Proteção</b><br>$500<br><button class='btn' onclick='toggleLock();closePanel()'>ATIVAR</button></div><div class='item'><b>💰 Renda x2 (30s)</b><br>$1500<br><button class='btn' onclick='buyBoost()'>COMPRAR</button></div><div class='item'><b>🧲 Ímã</b><br>$2000<br><button class='btn' onclick='buyMagnet()'>COMPRAR</button></div>`;TYPES.forEach((t,i)=>{h+=`<div class='item'><b>${t.emoji} ${t.n}</b><br><span class='r' style='background:${RARCOL[t.rar]}'>${t.rar}</span><br>$${t.price} • +${t.inc}/s<br><button class='btn green' onclick='buyDirect(${i})'>COMPRAR</button></div>`});h+="</div>";openPanel(h)}
+function buySpeed(){if(money>=800){money-=800;speedMult*=1.5;showMsg("⚡ Velocidade!");save();closePanel()}else showMsg("Sem dinheiro")}
+function buyBoost(){if(money>=1500){money-=1500;income*=2;setTimeout(recalc,30000);showMsg("💰 Boost x2!");closePanel()}else showMsg("Sem dinheiro")}
+function buyMagnet(){if(money>=2000){money-=2000;spawnConveyor();showMsg("🧲 Novos Brainrots!");closePanel()}else showMsg("Sem dinheiro")}
+function buyDirect(i){let t=TYPES[i];if(money>=t.price&&owned.length<8){money-=t.price;let b=makeBrainrot(t,-5+(owned.length%4)*3,52-Math.floor(owned.length/4)*3,.9);owned.push({mesh:b,type:i});recalc();save();showMsg("Comprou "+t.n);closePanel()}else showMsg("Sem dinheiro ou base cheia")}
+function openInv(){let h="<h2>🎒 SUA BASE</h2>";if(!owned.length)h+="<p>Nenhum Brainrot. Vá para a esteira!</p>";owned.forEach((o,i)=>{let t=TYPES[o.type];h+=`<div class='item'><b>${t.emoji} ${t.n}</b> - +${t.inc}/s - ${t.rar} <button class='btn red' onclick='sellOne(${i})'>VENDER $${Math.floor(t.price*.6)}</button></div>`});h+=`<p><b>Renda:</b> ${income}/s</p>`;openPanel(h)}
+function sellOne(i){let t=TYPES[owned[i].type];money+=Math.floor(t.price*.6);scene.remove(owned[i].mesh);owned.splice(i,1);recalc();save();closePanel();showMsg("💸 Vendeu "+t.n)}
+function openCodes(){openPanel(`<h2>🎁 CÓDIGOS</h2><input id='codeIn' placeholder='Digite o código'><button class='btn green' onclick='redeem()'>RESGATAR</button><p>BRAINROT (+$1000) • RICO (+$5000) • SAHUR (+$2000) • ADMIN999 (+$99999)</p>`)}
+function redeem(){let v=document.getElementById("codeIn").value.toUpperCase();let map={BRAINROT:1000,RICO:5000,SAHUR:2000,ADMIN999:99999};if(map[v]){money+=map[v];showMsg("🎁 +$"+map[v]);closePanel();save()}else showMsg("Código inválido")}
+function openAdmin(){let p=prompt("🔐 ADMIN v"+ADMIN_VERSION+"\nSenha:");if(p!=="admin123"){showMsg("❌ Acesso negado!");return}renderAdmin()}
+function renderAdmin(){
+ let tabs=[["dinheiro","💰 DINHEIRO"],["brainrot","🧠 BRAINROT"],["evento","🎁 EVENTO"],["player","⚡ PLAYER"],["mapa","🗺️ MAPA"],["jogadores","👥 PLAYERS"],["mundo","🌎 MUNDO"],["multi","🌐 MULTI"],["perigo","💣 PERIGO"]];
+ let tabBtns=tabs.map(t=>`<button class="btn ${adminTab==t[0]?"blue":""}" onclick="adminTab='${t[0]}';renderAdmin()">${t[1]}</button>`).join(" ");
+ let c="";
+ if(adminTab=="dinheiro") c=`<h3>💰 DINHEIRO INFINITO</h3><p>Valor: <input id="customMoney" type="number" placeholder="Ex: 200000"><button class="btn green" onclick="adminQuick('/dar dinheiro '+document.getElementById('customMoney').value)">DAR</button></p><div class="grid">${[1000,10000,100000,1000000,10000000,50000000,100000000,999999999].map(v=>`<button class="btn" onclick="adminQuick('/dar dinheiro ${v}')">+$${v.toLocaleString()}</button>`).join("")}<button class="btn green" onclick="adminQuick('/dar inf')">💰 INFINITO</button><button class="btn green" onclick="adminQuick('/renda x1000')">Renda x1000</button><button class="btn red" onclick="adminQuick('/zerar dinheiro')">Zerar</button></div><h3>⭐ Rebirth</h3><div class="grid">${[1,5,10,25,50,100].map(v=>`<button class="btn" onclick="adminQuick('/rebirth ${v}')">+${v} Rebirth</button>`).join("")}</div>`;
+ if(adminTab=="brainrot") c=`<h3>🧠 SPAWN</h3><div class="grid">${TYPES.map((t,i)=>`<button class="btn pink" onclick="adminQuick('/spawn ${i} x1')">Spawn ${t.emoji} ${t.n}</button>`).join("")}<button class="btn green" onclick="adminQuick('/dar todos')">🏆 DAR TODOS</button><button class="btn" onclick="adminQuick('/spawn 999')">🌈 SPAWN 999</button><button class="btn" onclick="adminQuick('/spawn rainbow')">🌈 RAINBOW</button><button class="btn" onclick="adminQuick('/spawn lucky')">🎲 LUCKY</button><button class="btn red" onclick="adminQuick('/limpar base')">Limpar Base</button></div>`;
+ if(adminTab=="evento") c=`<h3>🎁 EVENTOS</h3><div class="grid">${COMMAND_DB.evento.map(e=>`<button class="btn" onclick="adminQuick('/evento ${e}')">🎁 ${e.toUpperCase()}</button>`).join("")}</div><input id="annIn" placeholder="Texto do anúncio"><button class="btn blue" onclick="adminQuick('/anunciar '+document.getElementById('annIn').value)">📢 ANUNCIAR</button><button class="btn purple" onclick="adminQuick('/evento global')">🌐 EVENTO GLOBAL</button>`;
+ if(adminTab=="player") c=`<h3>⚡ PLAYER</h3><div class="grid">${COMMAND_DB.velocidade.map(v=>`<button class="btn" onclick="adminQuick('/velocidade ${v}')">Velocidade ${v}x</button>`).join("")}<button class="btn green" onclick="adminQuick('/deus')">😇 GOD ${godMode?"ON":"OFF"}</button><button class="btn green" onclick="adminQuick('/deus 999')">😇 GOD 999</button><button class="btn green" onclick="adminQuick('/voar')">🕊️ VOAR ${flyMode?"ON":"OFF"}</button><button class="btn" onclick="adminQuick('/noclip')">👻 NOCLIP ${noclip?"ON":"OFF"}</button><button class="btn" onclick="adminQuick('/tamanho 2')">Gigante 2x</button><button class="btn" onclick="adminQuick('/tamanho 0.5')">Mini 0.5x</button><button class="btn" onclick="adminQuick('/tamanho 1')">Normal</button><button class="btn" onclick="adminQuick('/pulo 100')">Pulo 100 🚀</button></div>`;
+ if(adminTab=="mapa") c=`<h3>🗺️ MAPA ADMIN</h3><div class="grid">${Array.from({length:16},(_,i)=>i+1).map(i=>`<button class="btn ${i==1?"green":""}" onclick="adminQuick('/teleport base ${i}')">🏠 Base ${i}</button>`).join("")}</div><p>X: <input id="tpX" type="number" value="0"> Z: <input id="tpZ" type="number" value="0"> <button class="btn green" onclick="adminQuick('/teleport xy '+document.getElementById('tpX').value+' '+document.getElementById('tpZ').value)">TELEPORT</button></p><button class="btn purple" style="width:100%;margin-top:8px" onclick="openBigMap();closePanel()">🗺️ ABRIR MAPA GRANDE</button>`;
+ if(adminTab=="jogadores") c=`<h3>👥 PLAYERS</h3>${fakePlayers.map((pl,i)=>`<div class="item" style="display:flex;justify-content:space-between;align-items:center;${pl.banned?'opacity:.5':''}"><span><b>${pl.banned?"🚫 ":""}${pl.name}</b><br><small>Lv ${pl.level} • $${pl.money.toLocaleString()}</small></span><span><button class="btn green" onclick="adminQuick('/dar player ${i} 10000')">+$10K</button><button class="btn" onclick="adminQuick('/kick ${i}')">Kick</button><button class="btn red" onclick="adminQuick('/ban ${i}')">Ban</button><button class="btn blue" onclick="adminQuick('/unban ${i}')">Unban</button></span></div>`).join("")}`;
+ if(adminTab=="mundo") c=`<h3>🌎 MUNDO</h3><div class="grid">${COMMAND_DB.clima.map(cl=>`<button class="btn" onclick="adminQuick('/clima ${cl}')">${cl.toUpperCase()}</button>`).join("")}</div><h3>🕐 Hora</h3><div class="grid">${COMMAND_DB.hora.map(h=>`<button class="btn" onclick="adminQuick('/hora ${h}')">${h}:00</button>`).join("")}</div><button class="btn" onclick="adminQuick('/trancar')">🔒 Trancar</button> <button class="btn" onclick="adminQuick('/destrancar')">🔓 Destrancar</button>`;
+ if(adminTab=="multi") c=`<h3>🌐 MULTIPLAYER ADMIN</h3><div class="grid"><button class="btn green" onclick="adminQuick('/dar todos-players')">💰 Dar $10K pra TODOS</button><button class="btn" onclick="adminQuick('/evento global')">🎁 Evento Global</button><button class="btn blue" onclick="adminQuick('/anunciar global OI GALERA')">📢 Anúncio Global</button><button class="btn red" onclick="adminQuick('/ban todos')">🚫 Banir Todos</button><button class="btn red" onclick="adminQuick('/kick todos-players')">👢 Kickar Todos</button><button class="btn" onclick="adminQuick('/versao')">❓ Ver Versão</button></div><p>Players reais online: <b>${Object.keys(mpPlayers).length+1}</b></p>`;
+ if(adminTab=="perigo") c=`<h3>💣 PERIGO</h3><button class="btn red" style="width:100%;margin:5px 0" onclick="adminQuick('/reset tudo')">RESETAR SAVE</button><button class="btn red" style="width:100%;margin:5px 0" onclick="adminQuick('/zerar dinheiro')">ZERAR DINHEIRO</button><button class="btn" style="width:100%;margin:5px 0" onclick="adminQuick('/backup')">💾 BACKUP</button>`;
+ openPanel(`<h2>👑 ADMIN v${ADMIN_VERSION}</h2><p style="font-size:12px">📊 Total: <b style="color:#FFD700">${totalComandos()} comandos</b> • God: ${godMode?"ON":"OFF"} • Voar: ${flyMode?"ON":"OFF"}</p><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${tabBtns}</div><div style="background:#000;border:2px solid #00FFFF;border-radius:12px;padding:10px;margin-bottom:10px"><input id="adminCmd" placeholder="Ex: /dar dinheiro 999999 /spawn 7 x10 /teleport base 5" onkeydown="if(event.key==='Enter') execAdminCmd()"><button class="btn green" style="width:100%;margin-top:6px" onclick="execAdminCmd()">▶ EXECUTAR</button><button class="btn" style="width:100%;margin-top:6px" onclick="adminQuick('/ajuda')">❓ VER COMANDOS</button><div id="adminLog" style="background:#111;border-radius:8px;padding:8px;margin-top:8px;font-size:12px;max-height:140px;overflow:auto">🟢 ADMIN v${ADMIN_VERSION} logado!</div></div>${c}`);
+}
+function adminQuick(cmd){let el=document.getElementById("adminCmd");if(el)el.value=cmd;execAdminCmd()}
+function adminLog(m){let el=document.getElementById("adminLog");if(el)el.innerHTML="✅ "+m+"<br>"+el.innerHTML}
+function execAdminCmd(){
+ let input=document.getElementById("adminCmd");let raw=(input.value||"").trim();if(!raw)return;let low=raw.toLowerCase();let p=low.replace("/","").split(" ");let cmd=p[0],a1=p[1],a2=p[2],a3=p[3];
+ if(cmd=="ajuda"){adminLog(`v${ADMIN_VERSION}: /dar dinheiro [VALOR] | /dar todos | /dar todos-players | /dar inf | /spawn [0-7] x[1-10] | /spawn 999 | /renda x1000 | /rebirth | /velocidade | /deus 999 | /voar | /evento global | /teleport base [1-16] | /anunciar global | /ban todos | /versao`);return}
+ if(cmd=="versao"){adminLog(`ADMIN v${ADMIN_VERSION}`);showMsg(`ADMIN v${ADMIN_VERSION}`);return}
+ if(cmd=="dar"&&a1=="dinheiro"){let v=parseInt(a2)||0;money+=v;save();adminLog(`+$${v.toLocaleString()}`);showMsg(`💰 +$${v.toLocaleString()}`);return}
+ if(cmd=="dar"&&a1=="inf"){money=999999999999;save();adminLog("💰 INFINITO!");showMsg("💰 DINHEIRO INFINITO!");return}
+ if(cmd=="dar"&&a1=="todos"){owned.forEach(o=>scene.remove(o.mesh));owned=[];TYPES.forEach((t,i)=>{let b=makeBrainrot(t,-5+(i%4)*3,52-Math.floor(i/4)*3,.9);owned.push({mesh:b,type:i})});recalc();save();adminLog("🏆 Todos!");return}
+ if(cmd=="dar"&&a1=="todos-players"){sendMp({type:"admin_event",text:"ADMIN DEU DINHEIRO PRA TODO MUNDO!",give:10000});money+=10000;adminLog("Deu $10K pra TODOS!");return}
+ if(cmd=="dar"&&a1=="player"){let id=parseInt(a2)||0;let v=parseInt(a3)||10000;if(fakePlayers[id]){fakePlayers[id].money+=v;adminLog(`Deu $${v} para ${fakePlayers[id].name}`);renderAdmin()}return}
+ if(cmd=="zerar"&&a1=="dinheiro"){money=0;save();adminLog("Dinheiro zerado");return}
+ if(cmd=="spawn"){if(a1=="999"){for(let k=0;k<8;k++)setTimeout(()=>adminQuick("/spawn "+k),k*200);adminLog("Spawn 999!");return}if(a1=="rainbow"){money+=10000;adminLog("🌈 RAINBOW +$10K");return}if(a1=="lucky"){money+=5000;adminLog("🎲 LUCKY +$5K");return}let idx=parseInt(a1);if(isNaN(idx))idx=6;let qtd=1;if(a2&&a2.startsWith("x"))qtd=parseInt(a2.replace("x",""))||1;qtd=Math.min(qtd,10);for(let k=0;k<qtd;k++){if(owned.length>=8)break;let t=TYPES[idx]||TYPES[6];let b=makeBrainrot(t,-5+(owned.length%4)*3,52-Math.floor(owned.length/4)*3,.9);owned.push({mesh:b,type:idx})}recalc();save();adminLog(`Spawnou ${qtd}x ${(TYPES[idx]||TYPES[6]).n}`);return}
+ if(cmd=="limpar"&&a1=="base"){owned.forEach(o=>scene.remove(o.mesh));owned=[];recalc();save();adminLog("Base limpa");return}
+ if(cmd=="renda"){let mult=parseInt(a1.replace("x",""))||10;income*=mult;setTimeout(recalc,30000);adminLog(`Renda x${mult}`);return}
+ if(cmd=="rebirth"){rebirth+=parseInt(a1)||1;recalc();save();adminLog(`Rebirth: ${rebirth}`);return}
+ if(cmd=="velocidade"||cmd=="speed"){speedMult=parseFloat(a1)||1;save();adminLog(`Velocidade ${speedMult}x`);return}
+ if(cmd=="deus"){if(a1=="999"){godMode=true;speedMult=999;adminLog("😇 GOD 999!");return}godMode=!godMode;adminLog(godMode?"😇 GOD ON":"😇 GOD OFF");return}
+ if(cmd=="voar"){flyMode=!flyMode;adminLog(flyMode?"🕊️ VOAR ON":"🕊️ VOAR OFF");return}
+ if(cmd=="noclip"){noclip=!noclip;adminLog(noclip?"👻 NOCLIP ON":"👻 NOCLIP OFF");return}
+ if(cmd=="tamanho"){if(player)player.scale.setScalar(parseFloat(a1)||1);adminLog(`Tamanho ${a1}x`);return}
+ if(cmd=="pulo"){velY=parseFloat(a1)||20;adminLog(`Pulo ${a1}`);return}
+ if(cmd=="evento"){if(a1=="global"){sendMp({type:"admin_event",text:"EVENTO GLOBAL!",give:5000});money+=5000;adminLog("Evento Global!");return}let bonus={dourado:5000,sorte:5000,lucky:5000,rainbow:10000,meteoro:20000,tsunami:30000,natal:15000,admin:10000,halloween:12000,pascoa:8000,invasao:25000,apocalipse:50000};money+=(bonus[a1]||5000);announce(`🎁 EVENTO ${a1?.toUpperCase()}! +$${bonus[a1]||5000}`);if(a1=="dourado"){golden=true;spawnConveyor()}save();adminLog(`Evento ${a1}!`);return}
+ if(cmd=="clima"){dayTime=a1=="noite"?0.8:a1=="por-do-sol"?0.4:a1=="chuva"?0.5:a1=="neve"?0.2:0;adminLog(`Clima: ${a1}`);return}
+ if(cmd=="hora"){dayTime=(parseInt(a1)||12)/24;adminLog(`Hora: ${a1}:00`);return}
+ if(cmd=="teleport"||cmd=="tp"){if(a1=="base"){let n=parseInt(a2)||1;let ang=((n-1)/16)*Math.PI*2;playerPos={x:Math.cos(ang)*52,z:Math.sin(ang)*52};adminLog(`Teleport Base ${n}`);return}if(a1=="xy"){playerPos={x:parseFloat(a2)||0,z:parseFloat(a3)||0};adminLog(`Teleport X:${a2} Z:${a3}`);return}if(a1=="esteira"){playerPos={x:0,z:8};adminLog("Teleport Esteira");return}if(a1=="arena"){playerPos={x:-35,z:-35};adminLog("Teleport Arena");return}if(a1=="loja"){playerPos={x:35,z:-35};adminLog("Teleport Loja");return}if(a1=="centro"){playerPos={x:0,z:0};adminLog("Teleport Centro");return}return}
+ if(cmd=="trancar"){lockBase=true;adminLog("🔒 Trancado");return}
+ if(cmd=="destrancar"){lockBase=false;adminLog("🔓 Destrancado");return}
+ if(cmd=="anunciar"){if(a1=="global"){sendMp({type:"admin_event",text:raw.replace("/anunciar global ","").toUpperCase(),give:0});adminLog("Anúncio Global!");return}announce(raw.replace(/\/anunciar /i,"").toUpperCase());adminLog("Anúncio enviado");return}
+ if(cmd=="kick"){if(a1=="todos-players"||a1=="todos"){sendMp({type:"kick",target:"all"});fakePlayers=[];adminLog("👢 Kickou todos!");renderAdmin();return}let id=parseInt(a1);if(fakePlayers[id]){adminLog(`👢 ${fakePlayers[id].name} kickado`);fakePlayers.splice(id,1);renderAdmin()}return}
+ if(cmd=="ban"){if(a1=="todos"){sendMp({type:"ban",target:"all"});adminLog("🚫 Baniu todos!");return}let id=parseInt(a1);if(fakePlayers[id]){fakePlayers[id].banned=true;adminLog(`🚫 ${fakePlayers[id].name} BANIDO`);renderAdmin()}return}
+ if(cmd=="unban"){let id=parseInt(a1);if(fakePlayers[id]){fakePlayers[id].banned=false;adminLog(`✅ Desbanido`);renderAdmin()}return}
+ if(cmd=="backup"){localStorage.setItem("brb_backup",localStorage.getItem("brb3d"));adminLog("💾 Backup salvo");return}
+ if(cmd=="reset"&&a1=="tudo"){money=0;rebirth=0;owned.forEach(o=>scene.remove(o.mesh));owned=[];recalc();save();localStorage.removeItem("brb3d");adminLog("SAVE RESETADO");return}
+ adminLog("❌ Comando desconhecido: "+raw+" — /ajuda");
+}
+// MAPA
+let basesPos=[];for(let i=0;i<16;i++){let a=(i/16)*Math.PI*2;basesPos.push({x:Math.cos(a)*52,z:Math.sin(a)*52,mine:i==0})}
+function worldToMap(x,z,size){return{mx:(x+100)/200*size,my:(z+100)/200*size}}
+function mapToWorld(mx,my,size){return{x:mx/size*200-100,z:my/size*200-100}}
+function drawMap(canvasId,size){let cv=document.getElementById(canvasId);if(!cv)return;let ctx=cv.getContext("2d");ctx.clearRect(0,0,size,size);ctx.fillStyle="#2E7D32";ctx.fillRect(0,0,size,size);ctx.fillStyle="#333";ctx.fillRect(0,size/2-5,size,10);ctx.fillStyle="#FFD700";ctx.fillRect(size*0.2,size/2-4,size*0.6,8);ctx.fillStyle="#fff";ctx.font="bold 10px Arial";ctx.textAlign="center";ctx.fillText("⭐ ESTEIRA",size/2,size/2-8);let arena=worldToMap(-35,-35,size);ctx.fillStyle="#FF0000";ctx.beginPath();ctx.arc(arena.mx,arena.my,10,0,Math.PI*2);ctx.fill();ctx.fillStyle="#fff";ctx.fillText("⚔️ ARENA",arena.mx,arena.my+22);let loja=worldToMap(35,-35,size);ctx.fillStyle="#00FFFF";ctx.beginPath();ctx.arc(loja.mx,loja.my,8,0,Math.PI*2);ctx.fill();ctx.fillStyle="#fff";ctx.fillText("🛒 LOJA",loja.mx,loja.my+20);basesPos.forEach((b,i)=>{let p=worldToMap(b.x,b.z,size);ctx.fillStyle=b.mine?"#00FF00":"#FF4444";ctx.fillRect(p.mx-7,p.my-7,14,14);ctx.strokeStyle=b.mine?"#FFD700":"#fff";ctx.lineWidth=2;ctx.strokeRect(p.mx-7,p.my-7,14,14);if(size>200||b.mine){ctx.fillStyle="#fff";ctx.font="bold 9px Arial";ctx.fillText(b.mine?"🏠 VOCÊ":""+(i+1),p.mx,p.my+20)}});if(typeof conveyor!=="undefined"){conveyor.forEach(c=>{let p=worldToMap(c.mesh.position.x,c.mesh.position.z,size);ctx.fillStyle="#FF69B4";ctx.beginPath();ctx.arc(p.mx,p.my,3,0,Math.PI*2);ctx.fill()})}if(typeof playerPos!=="undefined"){let p=worldToMap(playerPos.x,playerPos.z,size);let blink=(Date.now()/300)%2<1?1:0.5;ctx.globalAlpha=blink;ctx.fillStyle="#FFD700";ctx.beginPath();ctx.arc(p.mx,p.my,6,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#000";ctx.lineWidth=2;ctx.stroke();ctx.globalAlpha=1;ctx.fillStyle="#fff";ctx.font="bold 11px Arial";ctx.fillText("▼ VOCÊ",p.mx,p.my-10)}Object.entries(mpPlayers).forEach(([id,pp])=>{let p=worldToMap(pp.x,pp.z,size);ctx.fillStyle="#FF00FF";ctx.beginPath();ctx.arc(p.mx,p.my,5,0,Math.PI*2);ctx.fill()})}
+function updateMinimap(){drawMap("minimap",150)}
+function openBigMap(){document.getElementById("bigMap").style.display="flex";drawMap("bigMapCanvas",500);if(window.bigMapInterval)clearInterval(window.bigMapInterval);window.bigMapInterval=setInterval(()=>{if(document.getElementById("bigMap").style.display=="flex")drawMap("bigMapCanvas",500)},200)}
+function closeBigMap(){document.getElementById("bigMap").style.display="none";if(window.bigMapInterval)clearInterval(window.bigMapInterval)}
+function clickBigMap(e){let cv=document.getElementById("bigMapCanvas");let r=cv.getBoundingClientRect();let mx=(e.clientX-r.left)/r.width*500;let my=(e.clientY-r.top)/r.height*500;let w=mapToWorld(mx,my,500);document.getElementById("mapInfo").innerText=`📍 X:${Math.round(w.x)} Z:${Math.round(w.z)} — Teleportando...`;teleportTo(w.x,w.z);setTimeout(closeBigMap,600)}
+function teleportTo(x,z){playerPos.x=x;playerPos.z=z;showMsg(`📍 Teleportado para X:${Math.round(x)} Z:${Math.round(z)}`);closeBigMap()}
+// MULTIPLAYER REAL - PeerJS
+let myId="P"+Math.floor(Math.random()*99999),myName="Player_"+Math.floor(Math.random()*9999),mpPlayers={},mpMeshes={},peer=null,myRoomCode="",connections=[],isHost=false;
+document.getElementById("myNameLabel").innerText=myName;
+function mpToast(t){let el=document.getElementById("mpToast");if(!el)return;el.innerText=t;el.style.display="block";setTimeout(()=>el.style.display="none",3500)}
+function mpSetStatus(t){let el=document.getElementById("mpStatus");if(el)el.innerText=t}
+function createRoom(){
+ myRoomCode="SALA-"+Math.floor(1000+Math.random()*9000);isHost=true;mpSetStatus("🟡 Criando sala "+myRoomCode+"...");showMsg("🏠 Criando sala "+myRoomCode+"...");
+ peer=new Peer(myRoomCode);
+ peer.on("open",(id)=>{mpSetStatus("🟢 SALA CRIADA! Código: "+myRoomCode);document.getElementById("roomCode").innerText=myRoomCode;document.getElementById("roomCodeBox").style.display="block";mpToast("🏠 Sala "+myRoomCode+" criada!");addChatMsg("SISTEMA","🏠 Sala criada! Código: "+myRoomCode)});
+ peer.on("connection",(conn)=>{connections.push(conn);conn.on("open",()=>{conn.send({type:"welcome",name:myName});mpToast("🌐 Um amigo entrou!")});conn.on("data",(data)=>handleMpData(data,conn));conn.on("close",()=>{connections=connections.filter(c=>c!==conn);updateMpList()})});
+ peer.on("error",(err)=>{mpSetStatus("❌ Erro: "+err.type);showMsg("❌ Erro ao criar sala. Tente de novo!")});
+}
+function joinRoomPrompt(){let code=prompt("Digite o código da sala:\nEx: SALA-1234");if(!code)return;joinRoom(code.trim().toUpperCase())}
+function joinRoom(code){
+ myRoomCode=code;isHost=false;mpSetStatus("🟡 Entrando na sala "+code+"...");showMsg("🚪 Entrando na sala "+code+"...");
+ peer=new Peer();
+ peer.on("open",(id)=>{let conn=peer.connect(code);connections.push(conn);conn.on("open",()=>{mpSetStatus("🟢 CONECTADO na sala "+code+"!");document.getElementById("roomCode").innerText=code;document.getElementById("roomCodeBox").style.display="block";mpToast("✅ Entrou na sala "+code+"!");addChatMsg("SISTEMA","✅ Entrou na sala "+code);conn.send({type:"join",id:myId,name:myName,x:playerPos.x,z:playerPos.z,money:money})});conn.on("data",(data)=>handleMpData(data,conn));conn.on("close",()=>{mpSetStatus("🔴 Desconectado")})});
+ peer.on("error",(err)=>{mpSetStatus("❌ Sala não encontrada!");showMsg("❌ Sala não encontrada! Verifique o código.")});
+}
+function copyRoomCode(){if(navigator.clipboard)navigator.clipboard.writeText(myRoomCode);showMsg("📋 Código copiado: "+myRoomCode)}
+function sendMp(obj){let data={id:myId,...obj};connections.forEach(conn=>{try{if(conn.open)conn.send(data)}catch(e){}})}
+function handleMpData(d,conn){
+ if(!d||d.id===myId)return;
+ if(d.type=="join"||d.type=="move"){if(!mpPlayers[d.id])mpPlayers[d.id]={name:d.name,x:d.x,z:d.z,money:d.money||0};mpPlayers[d.id].x=d.x;mpPlayers[d.id].z=d.z;mpPlayers[d.id].name=d.name;mpPlayers[d.id].money=d.money||0;updateMpList();if(isHost&&d.type=="move"){connections.forEach(c=>{if(c!==conn&&c.open)c.send(d)})}}
+ if(d.type=="welcome"){mpToast("🌐 Conectado com "+d.name+"!")}
+ if(d.type=="chat"){addChatMsg(d.name,d.text);mpToast(`💬 ${d.name}: ${d.text}`);if(isHost)connections.forEach(c=>{if(c!==conn&&c.open)c.send(d)})}
+ if(d.type=="steal"){announce(`🚨 ${d.name} ROUBOU ${d.brainrot}!`)}
+ if(d.type=="admin_event"){announce(`👑 ADMIN: ${d.text}`);if(d.give){money+=d.give;showMsg(`🎁 Admin deu +$${d.give} pra TODO MUNDO!`)}}
+ if(d.type=="ban"&&d.target==="all"){showMsg("🚫 VOCÊ FOI BANIDO!");setTimeout(()=>{document.body.innerHTML="<h1 style='text-align:center;margin-top:100px'>🚫 VOCÊ FOI BANIDO<br>Recarregue a página</h1>"},1500)}
+ if(d.type=="kick"&&d.target==="all"){showMsg("👢 VOCÊ FOI KICKADO!");setTimeout(()=>location.reload(),1500)}
+}
+function updateMpList(){let el=document.getElementById("mpList");if(!el)return;let count=Object.keys(mpPlayers).length+1;document.getElementById("mpCount").innerText=count+" ONLINE";let html=`<div>🟢 <b style="color:#FFD700">Você (${myName})</b> - $${Math.floor(money).toLocaleString()}</div>`;Object.entries(mpPlayers).forEach(([id,p])=>{html+=`<div>🔵 ${p.name} <button style="background:#FF4444;color:#fff;border-radius:6px;padding:1px 6px;font-size:10px" onclick="stealFromPlayer('${id}')">😈 ROUBAR</button></div>`});if(count<2)html+=`<div style="color:#888">🤖 + ${fakePlayers.length} bots</div>`;el.innerHTML=html}
+function openChat(){document.getElementById("chatBox").style.display="block"}
+function closeChat(){document.getElementById("chatBox").style.display="none"}
+function sendChat(){let inp=document.getElementById("chatIn");let txt=inp.value.trim();if(!txt)return;addChatMsg("Você",txt);sendMp({type:"chat",name:myName,text:txt});inp.value=""}
+function addChatMsg(name,text){let box=document.getElementById("chatMsgs");if(!box)return;box.innerHTML+=`<div><b style="color:#00FFFF">${name}:</b> ${text}</div>`;box.scrollTop=box.scrollHeight}
+function copyMpLink(){if(navigator.clipboard)navigator.clipboard.writeText(location.href);showMsg("🔗 Link copiado!")}
+function stealFromPlayer(id){let p=mpPlayers[id];if(!p)return;if(Math.random()<0.6){money+=1000;showMsg(`😈 Roubou $1000 de ${p.name}!`);sendMp({type:"steal",name:myName,brainrot:"$1000 de "+p.name});sendMp({type:"chat",name:"SISTEMA",text:`🚨 ${myName} roubou $1000 de ${p.name}!`})}else showMsg(`🛡️ ${p.name} se defendeu!`);save()}
+function updateMpMeshes(){if(!scene)return;Object.entries(mpPlayers).forEach(([id,p])=>{if(!mpMeshes[id]){let g=new THREE.Group();let body=new THREE.Mesh(new THREE.BoxGeometry(1,1.6,.6),new THREE.MeshLambertMaterial({color:0xFF00FF}));body.position.y=1;g.add(body);let head=new THREE.Mesh(new THREE.BoxGeometry(.9,.9,.9),new THREE.MeshLambertMaterial({color:0xFFDBAC}));head.position.y=2.2;g.add(head);scene.add(g);mpMeshes[id]=g;let c=document.createElement("canvas");c.width=256;c.height=64;let ctx=c.getContext("2d");ctx.fillStyle="#000";ctx.fillRect(0,0,256,64);ctx.fillStyle="#00FFFF";ctx.font="900 28px Arial";ctx.textAlign="center";ctx.fillText(p.name,128,42);let spr=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c)}));spr.scale.set(4,1,1);spr.position.y=3.2;g.add(spr)}mpMeshes[id].position.set(p.x,0,p.z)});Object.keys(mpMeshes).forEach(id=>{if(!mpPlayers[id]){scene.remove(mpMeshes[id]);delete mpMeshes[id]}})}
+setInterval(()=>{if(typeof playerPos!=="undefined"&&connections.length>0)sendMp({type:"move",name:myName,x:playerPos.x,z:playerPos.z,money:money});updateMpList()},200);
+// CONTROLES
+function startGame(){document.getElementById("start").style.display="none";init()}
+addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(e.key==" ")jump();if(e.key.toLowerCase()=="e")interact()});
+addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
+let dragging=false,lastX=0,lastY=0;
+addEventListener("mousedown",e=>{dragging=true;lastX=e.clientX;lastY=e.clientY});
+addEventListener("mousemove",e=>{if(dragging){camAngle-=(e.clientX-lastX)*.01;camPitch=Math.max(.1,Math.min(1.2,camPitch+(e.clientY-lastY)*.01));lastX=e.clientX;lastY=e.clientY}});
+addEventListener("mouseup",()=>dragging=false);
+addEventListener("touchmove",e=>{if(e.touches[0].clientX>140){camAngle-=(e.clientX-lastX)*.01;camPitch=Math.max(.1,Math.min(1.2,camPitch+(e.touches[0].clientY-lastY)*.01))}lastX=e.touches[0].clientX;lastY=e.touches[0].clientY},{passive:true});
+addEventListener("touchstart",e=>{lastX=e.touches[0].clientX;lastY=e.touches[0].clientY});
+let joyEl=document.getElementById("joy"),knob=document.getElementById("knob");
+joyEl.addEventListener("touchmove",e=>{let r=joyEl.getBoundingClientRect();let x=e.touches[0].clientX-(r.left+60),y=e.touches[0].clientY-(r.top+60);let l=Math.hypot(x,y);if(l>35){x=x/l*35;y=y/l*35}knob.style.left=(32+x)+"px";knob.style.top=(32+y)+"px";joy.x=x/35;joy.y=y/35;e.preventDefault()},{passive:false});
+joyEl.addEventListener("touchend",()=>{joy.x=0;joy.y=0;knob.style.left="32px";knob.style.top="32px"});
+function animate(){
+ requestAnimationFrame(animate);dayTime+=.0005;let sunCol=new THREE.Color().setHSL(.6-dayTime*.1,.6,.6);scene.background=sunCol;
+ let fwd=0,side=0;if(keys["w"])fwd=1;if(keys["s"])fwd=-1;if(keys["a"])side=-1;if(keys["d"])side=1;fwd+=-joy.y;side+=joy.x;
+ let sp=7*speedMult;let dx=Math.sin(camAngle)*fwd+Math.cos(camAngle)*side;let dz=Math.cos(camAngle)*fwd-Math.sin(camAngle)*side;
+ playerPos.x+=dx*sp*.016;playerPos.z+=dz*sp*.016;playerPos.x=Math.max(-100,Math.min(100,playerPos.x));playerPos.z=Math.max(-100,Math.min(100,playerPos.z));
+ velY-=25*.016;player.position.y+=velY*.016;if(player.position.y<=0){player.position.y=0;velY=0;onGround=true}
+ player.position.set(playerPos.x,player.position.y,playerPos.z);if(dx||dz)player.rotation.y=Math.atan2(dx,dz);
+ camera.position.set(playerPos.x+Math.sin(camAngle)*12,player.position.y+6+camPitch*6,playerPos.z+Math.cos(camAngle)*12);camera.lookAt(playerPos.x,2,playerPos.z);
+ let t=Date.now()*.002;conveyor.forEach((c,i)=>{c.mesh.position.x+=.15;if(c.mesh.position.x>60)c.mesh.position.x=-60;c.mesh.rotation.y+=.02;c.mesh.position.y=Math.sin(t+i)*.2});
+ owned.forEach((o,i)=>{o.mesh.rotation.y+=.01;o.mesh.position.y=Math.sin(t+i)*.15});bots.forEach((b,i)=>{b.rotation.y+=.01;b.position.y=Math.sin(t+i)*.2});
+ updateMpMeshes();updateMinimap();renderer.render(scene,camera);
+}
+addEventListener("resize",()=>{if(renderer){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}});
+</script>
+</body>
+</html>
