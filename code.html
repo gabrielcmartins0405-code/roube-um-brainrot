@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>ROUBE UM BRAINROT 3D - MULTIPLAYER + ADMIN v999...</title>
+<title>ROUBE UM BRAINROT - ADMIN v888... SEM /</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:Arial,Black,Impact,sans-serif}
 body{overflow:hidden;background:#87CEEB;color:#fff;user-select:none}
@@ -43,10 +44,11 @@ input,select{width:100%;padding:10px;border-radius:10px;border:2px solid #FFD700
 #minimapLabel{font-size:11px;font-weight:900;color:#FFD700;margin-top:3px}
 #bigMap{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:80;display:none;align-items:center;justify-content:center;flex-direction:column;padding:15px}
 #bigMap canvas{width:min(92vw,500px);height:min(92vw,500px);background:#2E7D32;border:4px solid #FFD700;border-radius:20px}
-#mpWrap{position:fixed;left:10px;top:135px;z-index:24;background:rgba(0,0,0,.75);border:3px solid #00FFFF;border-radius:14px;padding:8px;width:205px;pointer-events:auto}
+#mpWrap{position:fixed;left:10px;top:135px;z-index:24;background:rgba(0,0,0,.85);border:3px solid #00FFFF;border-radius:14px;padding:8px;width:220px;pointer-events:auto}
 #chatBox{position:fixed;left:10px;bottom:150px;z-index:60;background:#111;border:3px solid #00FFFF;border-radius:14px;padding:10px;width:270px;display:none}
 #mpToast{position:fixed;top:190px;left:50%;transform:translateX(-50%);background:#00FFFF;color:#000;padding:8px 14px;border-radius:20px;font-weight:900;z-index:35;display:none}
-@media(max-width:768px){#joy{display:block}.pill{font-size:11px;padding:6px 8px}#start h1{font-size:36px}.grid{grid-template-columns:1fr}#minimap{width:110px;height:110px}#hud{max-width:calc(100% - 130px)}#mpWrap{width:165px;top:170px}}
+.respawnCard{background:#1e1e2e;border:3px solid #AA00FF;border-radius:16px;padding:12px;margin:8px 0;text-align:center}
+@media(max-width:768px){#joy{display:block}.pill{font-size:11px;padding:6px 8px}#start h1{font-size:36px}.grid{grid-template-columns:1fr}#minimap{width:110px;height:110px}#hud{max-width:calc(100% - 130px)}#mpWrap{width:175px;top:170px} button[onclick="openAdmin()"]{display:none !important}}
 </style>
 </head>
 <body>
@@ -60,23 +62,27 @@ input,select{width:100%;padding:10px;border-radius:10px;border:2px solid #FFD700
   <button class="btn pink" onclick="openInv()">🎒 BASE</button>
   <button class="btn green" onclick="doRebirth()">🔁 REBIRTH</button>
   <button class="btn" onclick="openCodes()">🎁 CÓDIGOS</button>
-  <button class="btn red" onclick="openAdmin()">👑 ADMIN v999...</button>
+  <button class="btn red" onclick="openAdmin()">👑 ADMIN v888...</button>
   <button class="btn" onclick="toggleLock()">🔒 PORTÃO</button>
+  <button class="btn purple" onclick="openRespawn()">🔁 RENASCER</button>
+  <button class="btn" onclick="respawnRandom()">🎲 BASE ALEATÓRIA</button>
 </div>
-<div id="minimapWrap"><canvas id="minimap" width="150" height="150" onclick="openBigMap()"></canvas><div id="minimapLabel">🗺️ MAPA - CLIQUE P/ AMPLIAR</div><div style="font-size:10px">🟡 VOCÊ • 🟢 SUA BASE • 🔴 INIMIGO</div></div>
+<div id="minimapWrap"><canvas id="minimap" width="150" height="150" onclick="openBigMap()"></canvas><div id="minimapLabel">🗺️ MAPA - CLIQUE P/ AMPLIAR</div><div style="font-size:10px">🟡 VOCÊ • 🟢 SUA BASE • 🔴 INIMIGO • 🩷 AMIGO</div></div>
 <div id="bigMap"><h2 style="color:#FFD700;margin-bottom:10px">🗺️ MAPA COMPLETO - 16 BASES</h2><canvas id="bigMapCanvas" width="500" height="500" onclick="clickBigMap(event)"></canvas><p style="font-size:12px;margin:8px 0">Clique em um lugar do mapa para TELEPORTAR!</p><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button class="btn green" onclick="teleportTo(0,52)">🏠 MINHA BASE</button><button class="btn" onclick="teleportTo(0,8)">🌟 ESTEIRA</button><button class="btn red" onclick="teleportTo(-35,-35)">⚔️ ARENA</button><button class="btn blue" onclick="teleportTo(35,-35)">🛒 LOJA</button><button class="btn" onclick="closeBigMap()">❌ FECHAR</button></div><div id="mapInfo" style="margin-top:10px;font-size:13px;background:#111;padding:8px 12px;border-radius:10px">📍 Clique no mapa para ver a posição</div></div>
-<div id="mpWrap"><div style="font-weight:900;color:#00FFFF;font-size:13px">🌐 MULTIPLAYER <span id="mpCount" style="color:#FFD700">1 ONLINE</span></div><div id="mpList" style="font-size:11px;max-height:90px;overflow:auto;margin:5px 0">🟢 Você (Host)</div><button class="btn blue" style="width:100%;padding:6px;font-size:11px" onclick="openChat()">💬 ABRIR CHAT</button><button class="btn green" style="width:100%;padding:6px;font-size:11px;margin-top:4px" onclick="copyMpLink()">🔗 COPIAR LINK P/ AMIGO</button><div style="font-size:10px;color:#aaa;margin-top:4px">Abra em outra aba pra testar!</div></div>
+<div id="mpWrap"><div style="font-weight:900;color:#00FFFF;font-size:13px">🌐 MULTIPLAYER REAL <span id="mpCount" style="color:#FFD700">1 ONLINE</span></div><div style="font-size:11px;color:#aaa">Seu nome: <b id="myNameLabel" style="color:#fff"></b></div><div id="mpStatus" style="font-size:11px;color:#FFD700;margin:4px 0">🔴 Offline - Crie uma sala!</div><div id="mpList" style="font-size:11px;max-height:90px;overflow:auto;margin:5px 0">🟢 Você</div><button class="btn green" style="width:100%;padding:7px;font-size:12px" onclick="createRoom()">🏠 CRIAR SALA</button><button class="btn blue" style="width:100%;padding:7px;font-size:12px;margin-top:4px" onclick="joinRoomPrompt()">🚪 ENTRAR NA SALA</button><button class="btn" style="width:100%;padding:7px;font-size:12px;margin-top:4px" onclick="openChat()">💬 CHAT</button><div id="roomCodeBox" style="display:none;background:#000;border:2px dashed #FFD700;border-radius:10px;padding:8px;margin-top:6px;text-align:center"><div style="font-size:11px">📋 SEU CÓDIGO:</div><div id="roomCode" style="font-size:20px;font-weight:900;color:#FFD700;letter-spacing:2px">----</div><button class="btn" style="padding:5px;font-size:11px;margin-top:4px" onclick="copyRoomCode()">📋 COPIAR CÓDIGO</button><div style="font-size:10px;color:#aaa;margin-top:3px">Manda pro seu amigo!</div></div></div>
 <div id="chatBox"><b style="color:#00FFFF">💬 CHAT GLOBAL</b> <button style="float:right;background:#f44;color:#fff;border-radius:8px;padding:2px 8px" onclick="closeChat()">X</button><div id="chatMsgs" style="height:140px;overflow:auto;background:#000;border-radius:8px;padding:6px;margin:8px 0;font-size:12px"></div><input id="chatIn" placeholder="Digite e aperte Enter..." onkeydown="if(event.key==='Enter') sendChat()"><button class="btn blue" style="width:100%" onclick="sendChat()">ENVIAR</button></div>
 <div id="mpToast"></div>
 <div id="msg"></div><div id="announce"></div><div id="eventBar">🌟 EVENTO ATIVO</div>
 <div id="bottom"><div id="joy"><div id="knob"></div></div><div id="actions"><button class="act" style="background:#00BFFF" onclick="jump()">⬆<br>PULAR</button><button class="act" style="background:#FFD700" onclick="interact()">✋<br>AÇÃO</button></div></div>
 <div id="panel"><div class="card"><button id="close" onclick="closePanel()">X FECHAR</button><div id="panelContent"></div></div></div>
-<div id="start"><div><h1>🧠 ROUBE<br>UM BRAINROT<br>🎮 3D</h1><p>16 BASES • MULTIPLAYER • ÍNDICE • MAPA • ADMIN v999...</p><p>WASD + MOUSE + E | CELULAR: JOYSTICK + AÇÃO</p><button class="btn" style="font-size:22px;padding:16px 30px" onclick="startGame()">▶ JOGAR AGORA</button><p style="font-size:12px">Admin senha: admin123 • Abra em 2 abas pra jogar com amigo!</p></div></div>
-
+<div id="start"><div><h1>🧠 ROUBE<br>UM BRAINROT<br>🎮 3D</h1><p>16 BASES • MULTIPLAYER • RENASCER • MAPA • ADMIN v888... SÓ BOTÃO</p><p>WASD + MOUSE + E | R = RENASCER | B = MENU RENASCER</p><button class="btn" style="font-size:22px;padding:16px 30px" onclick="startGame()">▶ JOGAR AGORA</button><p style="font-size:12px">Admin só no seu PC • Senha: admin123 • Sem comando /</p></div></div>
 <script>
-const ADMIN_VERSION="9999999999999999999999999999999";
-let scene,camera,renderer,player,keys={},money=0,income=0,rebirth=0,speedMult=1,lockBase=false,owned=[],conveyor=[],bots=[],dayTime=0,golden=false,indexFilter="all",adminTab="dinheiro",godMode=false,flyMode=false,noclip=false;
+const ADMIN_VERSION="88888888888888889999999989898";
+const ADMIN_SENHA="admin123";
+const ADMIN_SENHA_MESTRE="EU-SOU-O-DONO-PC-999";
+let scene,camera,renderer,player,keys={},money=0,income=0,rebirth=0,speedMult=1,lockBase=false,owned=[],conveyor=[],bots=[],dayTime=0,golden=false,indexFilter="all",adminTab="give",godMode=false,flyMode=false,noclip=false;
 let playerPos={x:0,z:18},velY=0,onGround=true,camAngle=0,camPitch=.45,joy={x:0,y:0};
+let currentBase=1,respawnCount=0;
 let fakePlayers=[{name:"xX_Sahur_Xx",money:12000,level:12,banned:false},{name:"Tralalero_Pro",money:85000,level:25,banned:false},{name:"Noob123",money:500,level:2,banned:false},{name:"BallerinaQueen",money:45000,level:18,banned:false},{name:"CrocodiloRei",money:200000,level:34,banned:false},{name:"AdminFake",money:999999,level:99,banned:false}];
 const TYPES=[
  {n:"Noobini Pizzanini",c:0xFFD700,rar:"Comum",price:50,inc:2,shape:"pizza",emoji:"🍕",desc:"O clássico!",where:"Esteira / Loja"},
@@ -94,7 +100,6 @@ function save(){localStorage.setItem("brb3d",JSON.stringify({money,rebirth,owned
 function load(){try{let d=JSON.parse(localStorage.getItem("brb3d"));if(d){money=d.money||0;rebirth=d.rebirth||0;speedMult=d.speedMult||1;return d.owned||[]}}catch(e){}return[]}
 function showMsg(t){let m=document.getElementById("msg");m.innerText=t;m.style.display="block";setTimeout(()=>m.style.display="none",2800)}
 function announce(t){let a=document.getElementById("announce");a.innerText=t;a.style.display="block";setTimeout(()=>a.style.display="none",5000)}
-function totalComandos(){return (1000*8*100+18*100+24*16*8*12+50000).toLocaleString("pt-BR")}
 function makeBrainrot(type,x,z,scale=1){let g=new THREE.Group();let mat=new THREE.MeshLambertMaterial({color:type.c});let body=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,1.2),mat);body.position.y=1;g.add(body);let head=new THREE.Mesh(new THREE.BoxGeometry(1,.8,1),new THREE.MeshLambertMaterial({color:0xffffff}));head.position.y=2;g.add(head);let e1=new THREE.Mesh(new THREE.SphereGeometry(.14,8,8),new THREE.MeshLambertMaterial({color:0}));e1.position.set(-.2,2.1,.51);g.add(e1);let e2=e1.clone();e2.position.x=.2;g.add(e2);if(type.shape=="shark"){let f=new THREE.Mesh(new THREE.ConeGeometry(.4,.8,4),mat);f.position.y=2.6;g.add(f)}if(type.shape=="pizza"){let p=new THREE.Mesh(new THREE.CylinderGeometry(.7,.1,.3,6),new THREE.MeshLambertMaterial({color:0xFFA500}));p.position.y=2.6;g.add(p)}if(type.shape=="croc"){let s=new THREE.Mesh(new THREE.BoxGeometry(1.4,.4,.8),mat);s.position.set(0,1.8,.7);g.add(s)}if(type.shape=="ballerina"){let sk=new THREE.Mesh(new THREE.CylinderGeometry(.9,.2,.5,8),new THREE.MeshLambertMaterial({color:0xFF69B4}));sk.position.y=.4;g.add(sk)}if(type.shape=="cup"){let cu=new THREE.Mesh(new THREE.CylinderGeometry(.5,.4,.6,10),new THREE.MeshLambertMaterial({color:0xffffff}));cu.position.y=2.6;g.add(cu)}if(type.shape=="gold"||type.shape=="diamond"){let cr=new THREE.Mesh(new THREE.CylinderGeometry(.3,.5,.4,5),new THREE.MeshLambertMaterial({color:0xFFD700}));cr.position.y=2.7;g.add(cr)}g.position.set(x,0,z);g.scale.setScalar(scale);g.userData={type};scene.add(g);return g}
 function label(text,x,y,z,color="#fff"){let c=document.createElement("canvas");c.width=512;c.height=128;let ctx=c.getContext("2d");ctx.fillStyle="#000";ctx.fillRect(0,0,512,128);ctx.fillStyle=color;ctx.font="900 48px Arial";ctx.textAlign="center";ctx.fillText(text,256,80);let t=new THREE.CanvasTexture(c);let s=new THREE.Sprite(new THREE.SpriteMaterial({map:t}));s.scale.set(10,2.5,1);s.position.set(x,y,z);scene.add(s);return s}
 function init(){
@@ -134,59 +139,163 @@ function openInv(){let h="<h2>🎒 SUA BASE</h2>";if(!owned.length)h+="<p>Nenhum
 function sellOne(i){let t=TYPES[owned[i].type];money+=Math.floor(t.price*.6);scene.remove(owned[i].mesh);owned.splice(i,1);recalc();save();closePanel();showMsg("💸 Vendeu "+t.n)}
 function openCodes(){openPanel(`<h2>🎁 CÓDIGOS</h2><input id='codeIn' placeholder='Digite o código'><button class='btn green' onclick='redeem()'>RESGATAR</button><p>BRAINROT (+$1000) • RICO (+$5000) • SAHUR (+$2000) • ADMIN999 (+$99999)</p>`)}
 function redeem(){let v=document.getElementById("codeIn").value.toUpperCase();let map={BRAINROT:1000,RICO:5000,SAHUR:2000,ADMIN999:99999};if(map[v]){money+=map[v];showMsg("🎁 +$"+map[v]);closePanel();save()}else showMsg("Código inválido")}
-// ADMIN v999...
-function openAdmin(){let p=prompt("🔐 ADMIN v"+ADMIN_VERSION+"\nSenha:");if(p!=="admin123"){showMsg("❌ Acesso negado!");return}renderAdmin()}
+// ADMIN SÓ NO MEU PC
+function isPC(){let mobile=/Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent);let temTouch=('ontouchstart' in window)&&screen.width<900;return !mobile&&!temTouch}
+function getMeuPCId(){let id=localStorage.getItem("meu_pc_id");if(!id){id="PC-"+navigator.userAgent.slice(0,30).replace(/[^a-zA-Z0-9]/g,"")+"-"+Math.random().toString(36).slice(2,10).toUpperCase();localStorage.setItem("meu_pc_id",id)}return id}
+let MEU_PC_ID=getMeuPCId();
+function openAdmin(){
+  if(!isPC()){alert("🚫 ADMIN SÓ NO PC!");showMsg("🚫 ADMIN SÓ NO PC!");return}
+  let p=prompt("🔐 ADMIN v"+ADMIN_VERSION+"\n💻 SÓ NO SEU PC\nDigite a senha:");if(!p)return;
+  if(p===ADMIN_SENHA_MESTRE){let confirmar=confirm("⚠️ VOCÊ É O DONO? Travar Admin nesse PC?");if(confirmar){localStorage.setItem("admin_dono_pc",MEU_PC_ID);alert("✅ ESSE PC AGORA É O DONO!");renderAdmin()}return}
+  if(p!==ADMIN_SENHA){showMsg("❌ Senha errada!");return}
+  let dono=localStorage.getItem("admin_dono_pc");
+  if(!dono){let confirmar=confirm("👑 PRIMEIRO LOGIN! Travar Admin SÓ NESSE PC?");if(confirmar){localStorage.setItem("admin_dono_pc",MEU_PC_ID);alert("✅ ADMIN TRAVADO NESSE PC!");renderAdmin()}return}
+  if(dono!==MEU_PC_ID){alert("🚫 VOCÊ NÃO É O DONO! Esse PC não é autorizado!");showMsg("🚫 PC NÃO AUTORIZADO!");sendMp({type:"chat",name:"SISTEMA",text:"🚨 TENTARAM INVADIR O ADMIN!"});return}
+  showMsg("👑 Bem-vindo, DONO!");renderAdmin();
+}
+function atualizarBotaoAdminPC(){let botoes=document.querySelectorAll("button");botoes.forEach(b=>{if(b.innerText.includes("ADMIN")){if(!isPC()){b.style.display="none";return}let dono=localStorage.getItem("admin_dono_pc");if(dono&&dono!==MEU_PC_ID){b.style.display="none"}else{b.style.display="inline-block";b.innerText="👑 ADMIN v888..."}}})}
+setTimeout(atualizarBotaoAdminPC,500);setInterval(atualizarBotaoAdminPC,3000);
+// RENASCER
+function openRespawn(){
+  let basesHtml="";for(let i=1;i<=16;i++){let isCurrent=(i===currentBase);let isMine=(i===1);let emoji=isCurrent?"📍 VOCÊ ESTÁ AQUI":isMine?"🏠 SUA BASE":"🏠 BASE "+i;let color=isCurrent?"background:#AA00FF;color:#fff":isMine?"background:#32CD32":"";basesHtml+=`<button class="btn" style="width:100%;margin:3px 0;${color}" onclick="respawnAtBase(${i})">${emoji} ${isCurrent?"- RENASCER AQUI DE NOVO":"- RENASCER AQUI"}</button>`}
+  let friendsHtml="";if(typeof mpPlayers!=="undefined"&&Object.keys(mpPlayers).length>0){friendsHtml=`<h3>🌐 Amigos</h3>`;Object.entries(mpPlayers).forEach(([id,p])=>{friendsHtml+=`<button class="btn blue" style="width:100%;margin:3px 0" onclick="respawnAtPlayer('${id}')">👤 Renascer perto de ${p.name}</button>`})}
+  openPanel(`<h2>🔁 RENASCER EM BASE DIFERENTE</h2><div class="respawnCard"><p>📍 Você está na <b>Base ${currentBase}</b></p><p>🔁 Renasceu <b>${respawnCount}x</b></p></div><button class="btn purple" style="width:100%;padding:14px;font-size:16px;margin:6px 0" onclick="respawnRandom()">🎲 RENASCER ALEATÓRIO</button><button class="btn green" style="width:100%;padding:12px;margin:6px 0" onclick="respawnAtBase(1)">🏠 MINHA BASE</button><button class="btn red" style="width:100%;padding:12px;margin:6px 0" onclick="respawnAtBase(10)">⚔️ ARENA</button>${friendsHtml}<h3>🏠 16 Bases:</h3><div style="max-height:300px;overflow:auto">${basesHtml}</div><p style="font-size:11px;color:#888">R = Aleatório | B = Menu</p>`);
+}
+function respawnAtBase(n){if(n<1)n=1;if(n>16)n=16;let ang=((n-1)/16)*Math.PI*2;let x=Math.cos(ang)*52;let z=Math.sin(ang)*52;playerPos.x=x;playerPos.z=z;velY=0;if(player)player.position.set(x,0,z);currentBase=n;respawnCount++;closePanel();showMsg(`🔁 Renasceu na BASE ${n}!`);announce(`🔁 RENASCEU NA BASE ${n}!`);sendMp({type:"chat",name:"SISTEMA",text:`🔁 ${myName} renasceu na Base ${n}!`});if(player)player.scale.setScalar(1.5);setTimeout(()=>{if(player)player.scale.setScalar(1)},500)}
+function respawnRandom(){let novaBase;do{novaBase=Math.floor(Math.random()*16)+1}while(novaBase===currentBase);showMsg("🎲 Sorteando base...");setTimeout(()=>respawnAtBase(novaBase),400)}
+function respawnAtPlayer(id){let p=mpPlayers[id];if(!p){showMsg("❌ Amigo não encontrado!");return}playerPos.x=p.x+3;playerPos.z=p.z+3;if(player)player.position.set(playerPos.x,0,playerPos.z);closePanel();showMsg(`🔁 Renasceu perto de ${p.name}!`)}
+function dieAndRespawn(reason){showMsg("💀 Morreu! "+reason+" Renascerendo...");announce("💀 VOCÊ MORREU! Renascerendo...");if(reason.includes("Arena"))money=Math.max(0,money-100);setTimeout(()=>{respawnRandom()},1200)}
+addEventListener("keydown",(e)=>{if(e.key.toLowerCase()==="r"&&!document.getElementById("panel").style.display.includes("block")){respawnRandom()}if(e.key.toLowerCase()==="b"){openRespawn()}});
+// ===== ADMIN v888... SÓ BOTÃO - SEM / =====
 function renderAdmin(){
- let tabs=[["dinheiro","💰 DINHEIRO"],["brainrot","🧠 BRAINROT"],["evento","🎁 EVENTO"],["player","⚡ PLAYER"],["mapa","🗺️ MAPA"],["jogadores","👥 PLAYERS"],["mundo","🌎 MUNDO"],["multi","🌐 MULTI"],["perigo","💣 PERIGO"]];
- let tabBtns=tabs.map(t=>`<button class="btn ${adminTab==t[0]?"blue":""}" onclick="adminTab='${t[0]}';renderAdmin()">${t[1]}</button>`).join(" ");
- let c="";
- if(adminTab=="dinheiro") c=`<h3>💰 DINHEIRO INFINITO</h3><p>Valor: <input id="customMoney" type="number" placeholder="Ex: 200000"><button class="btn green" onclick="adminQuick('/dar dinheiro '+document.getElementById('customMoney').value)">DAR</button></p><div class="grid">${[1000,10000,100000,1000000,10000000,50000000,100000000,999999999].map(v=>`<button class="btn" onclick="adminQuick('/dar dinheiro ${v}')">+$${v.toLocaleString()}</button>`).join("")}<button class="btn green" onclick="adminQuick('/dar inf')">💰 DINHEIRO INFINITO</button><button class="btn green" onclick="adminQuick('/renda x1000')">Renda x1000</button><button class="btn red" onclick="adminQuick('/zerar dinheiro')">Zerar</button></div><h3>⭐ Rebirth</h3><div class="grid">${[1,5,10,25,50,100].map(v=>`<button class="btn" onclick="adminQuick('/rebirth ${v}')">+${v} Rebirth</button>`).join("")}</div>`;
- if(adminTab=="brainrot") c=`<h3>🧠 SPAWN</h3><div class="grid">${TYPES.map((t,i)=>`<button class="btn pink" onclick="adminQuick('/spawn ${i} x1')">Spawn ${t.emoji} ${t.n}</button>`).join("")}<button class="btn green" onclick="adminQuick('/dar todos')">🏆 DAR TODOS</button><button class="btn" onclick="adminQuick('/spawn 999')">🌈 SPAWN 999</button><button class="btn" onclick="adminQuick('/spawn rainbow')">🌈 RAINBOW</button><button class="btn" onclick="adminQuick('/spawn lucky')">🎲 LUCKY</button><button class="btn red" onclick="adminQuick('/limpar base')">Limpar Base</button></div>`;
- if(adminTab=="evento") c=`<h3>🎁 EVENTOS</h3><div class="grid">${COMMAND_DB.evento.map(e=>`<button class="btn" onclick="adminQuick('/evento ${e}')">🎁 ${e.toUpperCase()}</button>`).join("")}</div><input id="annIn" placeholder="Texto do anúncio"><button class="btn blue" onclick="adminQuick('/anunciar '+document.getElementById('annIn').value)">📢 ANUNCIAR</button><button class="btn purple" onclick="adminQuick('/evento global')">🌐 EVENTO GLOBAL</button>`;
- if(adminTab=="player") c=`<h3>⚡ PLAYER</h3><div class="grid">${COMMAND_DB.velocidade.map(v=>`<button class="btn" onclick="adminQuick('/velocidade ${v}')">Velocidade ${v}x</button>`).join("")}<button class="btn green" onclick="adminQuick('/deus')">😇 GOD ${godMode?"ON":"OFF"}</button><button class="btn green" onclick="adminQuick('/deus 999')">😇 GOD 999</button><button class="btn green" onclick="adminQuick('/voar')">🕊️ VOAR ${flyMode?"ON":"OFF"}</button><button class="btn" onclick="adminQuick('/noclip')">👻 NOCLIP ${noclip?"ON":"OFF"}</button><button class="btn" onclick="adminQuick('/tamanho 2')">Gigante 2x</button><button class="btn" onclick="adminQuick('/tamanho 0.5')">Mini 0.5x</button><button class="btn" onclick="adminQuick('/tamanho 1')">Normal</button><button class="btn" onclick="adminQuick('/pulo 100')">Pulo 100 🚀</button></div>`;
- if(adminTab=="mapa") c=`<h3>🗺️ MAPA ADMIN</h3><div class="grid">${Array.from({length:16},(_,i)=>i+1).map(i=>`<button class="btn ${i==1?"green":""}" onclick="adminQuick('/teleport base ${i}')">🏠 Base ${i}</button>`).join("")}</div><p>X: <input id="tpX" type="number" value="0"> Z: <input id="tpZ" type="number" value="0"> <button class="btn green" onclick="adminQuick('/teleport xy '+document.getElementById('tpX').value+' '+document.getElementById('tpZ').value)">TELEPORT</button></p><button class="btn purple" style="width:100%;margin-top:8px" onclick="openBigMap();closePanel()">🗺️ ABRIR MAPA GRANDE</button>`;
- if(adminTab=="jogadores") c=`<h3>👥 PLAYERS</h3>${fakePlayers.map((pl,i)=>`<div class="item" style="display:flex;justify-content:space-between;align-items:center;${pl.banned?'opacity:.5':''}"><span><b>${pl.banned?"🚫 ":""}${pl.name}</b><br><small>Lv ${pl.level} • $${pl.money.toLocaleString()}</small></span><span><button class="btn green" onclick="adminQuick('/dar player ${i} 10000')">+$10K</button><button class="btn" onclick="adminQuick('/kick ${i}')">Kick</button><button class="btn red" onclick="adminQuick('/ban ${i}')">Ban</button><button class="btn blue" onclick="adminQuick('/unban ${i}')">Unban</button></span></div>`).join("")}`;
- if(adminTab=="mundo") c=`<h3>🌎 MUNDO</h3><div class="grid">${COMMAND_DB.clima.map(cl=>`<button class="btn" onclick="adminQuick('/clima ${cl}')">${cl.toUpperCase()}</button>`).join("")}</div><h3>🕐 Hora</h3><div class="grid">${COMMAND_DB.hora.map(h=>`<button class="btn" onclick="adminQuick('/hora ${h}')">${h}:00</button>`).join("")}</div><button class="btn" onclick="adminQuick('/trancar')">🔒 Trancar</button> <button class="btn" onclick="adminQuick('/destrancar')">🔓 Destrancar</button>`;
- if(adminTab=="multi") c=`<h3>🌐 MULTIPLAYER ADMIN</h3><div class="grid"><button class="btn green" onclick="adminQuick('/dar todos-players')">💰 Dar $10K pra TODOS</button><button class="btn" onclick="adminQuick('/evento global')">🎁 Evento Global</button><button class="btn blue" onclick="adminQuick('/anunciar global OI GALERA')">📢 Anúncio Global</button><button class="btn red" onclick="adminQuick('/ban todos')">🚫 Banir Todos</button><button class="btn red" onclick="adminQuick('/kick todos-players')">👢 Kickar Todos</button><button class="btn" onclick="adminQuick('/versao')">❓ Ver Versão</button></div><p>Players reais online: <b>${Object.keys(mpPlayers).length+1}</b></p>`;
- if(adminTab=="perigo") c=`<h3>💣 PERIGO</h3><button class="btn red" style="width:100%;margin:5px 0" onclick="adminQuick('/reset tudo')">RESETAR SAVE</button><button class="btn red" style="width:100%;margin:5px 0" onclick="adminQuick('/zerar dinheiro')">ZERAR DINHEIRO</button><button class="btn" style="width:100%;margin:5px 0" onclick="adminQuick('/backup')">💾 BACKUP</button>`;
- openPanel(`<h2>👑 ADMIN v${ADMIN_VERSION}</h2><p style="font-size:12px">📊 Total: <b style="color:#FFD700">${totalComandos()} comandos</b> • God: ${godMode?"ON":"OFF"} • Voar: ${flyMode?"ON":"OFF"}</p><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${tabBtns}</div><div style="background:#000;border:2px solid #00FFFF;border-radius:12px;padding:10px;margin-bottom:10px"><input id="adminCmd" placeholder="Ex: /dar dinheiro 999999 /spawn 7 x10 /teleport base 5" onkeydown="if(event.key==='Enter') execAdminCmd()"><button class="btn green" style="width:100%;margin-top:6px" onclick="execAdminCmd()">▶ EXECUTAR</button><button class="btn" style="width:100%;margin-top:6px" onclick="adminQuick('/ajuda')">❓ VER COMANDOS</button><div id="adminLog" style="background:#111;border-radius:8px;padding:8px;margin-top:8px;font-size:12px;max-height:140px;overflow:auto">🟢 ADMIN v${ADMIN_VERSION} logado!</div></div>${c}`);
+  let tabs=[["give","🎁 GIVE"],["hammer","🔨 HAMMER"],["delete","🗑️ DELETE"],["efeitos","✨ EFEITOS"],["evento","🎁 EVENTO"],["mundo","🌎 MUNDO"],["multi","🌐 MULTI"]];
+  let tabBtns=tabs.map(t=>`<button class="btn ${adminTab==t[0]?"blue":""}" onclick="adminTab='${t[0]}';renderAdmin()">${t[1]}</button>`).join(" ");
+  let c="";
+  if(adminTab=="give") c=`
+    <h3>🎁 GIVE - DAR</h3>
+    <p style="font-size:12px">Clica e ganha na hora! Sem digitar nada!</p>
+    <h3>💰 Dinheiro</h3>
+    <div class="grid">
+      <button class="btn green" onclick="adminGiveMoney(1000)">💰 +$1.000</button>
+      <button class="btn green" onclick="adminGiveMoney(10000)">💰 +$10.000</button>
+      <button class="btn green" onclick="adminGiveMoney(100000)">💰 +$100.000</button>
+      <button class="btn green" onclick="adminGiveMoney(1000000)">💰 +$1.000.000</button>
+      <button class="btn green" onclick="adminGiveMoney(10000000)">💰 +$10.000.000</button>
+      <button class="btn green" onclick="adminGiveMoney(999999999)">💰 +$999.999.999</button>
+      <button class="btn" onclick="adminGiveMoney(999999999999)">♾️ INFINITO</button>
+      <button class="btn red" onclick="adminGiveMoney(-999999)">🗑️ ZERAR</button>
+    </div>
+    <h3>🧠 Brainrots</h3>
+    <div class="grid">${TYPES.map((t,i)=>`<button class="btn pink" onclick="adminGiveBrainrot(${i})">🎁 ${t.emoji} ${t.n}</button>`).join("")}<button class="btn green" onclick="adminGiveAll()">🏆 DAR TODOS</button><button class="btn" onclick="adminGiveRainbow()">🌈 RAINBOW</button><button class="btn" onclick="adminGiveLucky()">🎲 LUCKY BLOCK</button></div>
+    <h3>⭐ Rebirth / Velocidade</h3>
+    <div class="grid"><button class="btn" onclick="adminGiveRebirth(1)">⭐ +1 Rebirth</button><button class="btn" onclick="adminGiveRebirth(10)">⭐ +10 Rebirth</button><button class="btn" onclick="adminGiveRebirth(100)">⭐ +100 Rebirth</button><button class="btn" onclick="adminSetSpeed(10)">⚡ Vel 10x</button><button class="btn" onclick="adminSetSpeed(50)">⚡ Vel 50x</button><button class="btn" onclick="adminSetSpeed(999)">⚡ Vel 999x</button><button class="btn" onclick="adminSetSpeed(1)">🐢 Normal</button><button class="btn" onclick="adminGiveRenda()">💰 Renda x1000</button></div>`;
+  if(adminTab=="hammer") c=`
+    <h3>🔨 HAMMER - MARTELO DO ADMIN</h3>
+    <p style="background:#FFD700;color:#000;padding:8px;border-radius:10px;font-weight:900;text-align:center">🔨 ESCOLHA O MARTELO E CLIQUE NO PLAYER!</p>
+    <div class="grid">
+      <button class="btn" onclick="adminSetHammer('normal')">🔨 HAMMER NORMAL<br><small>Kicka</small></button>
+      <button class="btn red" onclick="adminSetHammer('ban')">🚫 BAN HAMMER<br><small>Bane pra sempre!</small></button>
+      <button class="btn" onclick="adminSetHammer('freeze')">❄️ FREEZE HAMMER<br><small>Congela</small></button>
+      <button class="btn purple" onclick="adminSetHammer('nuke')">💣 NUKE HAMMER<br><small>Explode</small></button>
+      <button class="btn green" onclick="adminSetHammer('money')">💰 MONEY HAMMER<br><small>Dá $10K</small></button>
+      <button class="btn pink" onclick="adminSetHammer('slap')">👋 SLAP HAMMER<br><small>Tapa e joga longe</small></button>
+    </div>
+    <div style="background:#000;padding:10px;border-radius:10px;margin-top:10px"><p>Martelo ativo: <b style="color:#FFD700">${window.currentHammer||"Nenhum"}</b></p><p style="font-size:11px;color:#aaa">Depois de escolher, clique no player abaixo!</p></div>
+    <h3>👥 Players - Clique pra usar o Martelo:</h3>
+    ${fakePlayers.map((pl,i)=>`<div class="item" style="display:flex;justify-content:space-between;align-items:center;${pl.banned?'opacity:.5':''}"><span><b>${pl.banned?"🚫 ":""}${pl.name}</b><br><small>Lv ${pl.level} • $${pl.money.toLocaleString()}</small></span><button class="btn red" onclick="adminUseHammer(${i})">🔨 USAR MARTELO</button></div>`).join("")}
+    <h3>🌐 Players Reais:</h3>
+    ${Object.keys(mpPlayers).length===0?"<p>Nenhum player real.</p>":Object.entries(mpPlayers).map(([id,p])=>`<div class="item" style="display:flex;justify-content:space-between"><span><b>${p.name}</b></span><button class="btn red" onclick="adminUseHammerReal('${id}')">🔨 USAR MARTELO</button></div>`).join("")}
+    <button class="btn red" style="width:100%;margin-top:10px;padding:14px" onclick="adminNukeAll()">💣 NUKE EM TODO MUNDO!</button>`;
+  if(adminTab=="delete") c=`
+    <h3>🗑️ DELETE - APAGAR</h3>
+    <div class="grid">
+      <button class="btn red" onclick="adminDeleteBase()">🗑️ DELETAR MINHA BASE</button>
+      <button class="btn red" onclick="adminDeleteMoney()">🗑️ DELETAR DINHEIRO</button>
+      <button class="btn red" onclick="adminDeleteRebirth()">🗑️ DELETAR REBIRTH</button>
+      <button class="btn red" onclick="adminDeleteSave()">🗑️ DELETAR SAVE</button>
+      <button class="btn red" onclick="adminDeleteAllPlayers()">🗑️ DELETAR TODOS PLAYERS</button>
+      <button class="btn" onclick="adminDeleteOneBrainrot()">🗑️ DELETAR 1 BRAINROT</button>
+    </div>
+    <h3>🗑️ Deletar Brainrot específico:</h3>
+    <div class="grid">${owned.map((o,i)=>`<button class="btn red" onclick="adminDeleteBrainrotIndex(${i})">🗑️ Deletar ${TYPES[o.type].emoji} ${TYPES[o.type].n}</button>`).join("")||"<p>Você não tem Brainrot.</p>"}</div>`;
+  if(adminTab=="efeitos") c=`
+    <h3>✨ EFEITOS</h3>
+    <div class="grid">
+      <button class="btn green" onclick="adminToggleGod()">😇 GOD ${godMode?"ON ✅":"OFF"}</button>
+      <button class="btn green" onclick="adminToggleFly()">🕊️ VOAR ${flyMode?"ON ✅":"OFF"}</button>
+      <button class="btn" onclick="adminToggleNoclip()">👻 NOCLIP ${noclip?"ON ✅":"OFF"}</button>
+      <button class="btn" onclick="adminSetSize(2)">🦖 GIGANTE 2x</button>
+      <button class="btn" onclick="adminSetSize(5)">🦖 GIGANTE 5x</button>
+      <button class="btn" onclick="adminSetSize(0.5)">🐜 MINI 0.5x</button>
+      <button class="btn" onclick="adminSetSize(1)">🧍 NORMAL</button>
+      <button class="btn" onclick="adminSuperJump()">🚀 SUPER PULO 100</button>
+      <button class="btn" onclick="adminInvisivel()">👻 INVISÍVEL</button>
+      <button class="btn" onclick="adminRainbow()">🌈 RAINBOW</button>
+      <button class="btn" onclick="adminTeleportRandom()">🎲 TELEPORT ALEATÓRIO</button>
+      <button class="btn" onclick="adminRenascerRandom()">🔁 RENASCER ALEATÓRIO</button>
+    </div>
+    <h3>🔁 Renascer em base:</h3>
+    <div class="grid">${Array.from({length:16},(_,i)=>i+1).map(n=>`<button class="btn" onclick="respawnAtBase(${n})">🏠 Renascer Base ${n}</button>`).join("")}</div>`;
+  if(adminTab=="evento") c=`
+    <h3>🎁 EVENTOS</h3>
+    <div class="grid">${COMMAND_DB.evento.map(e=>`<button class="btn" onclick="adminDoEvento('${e}')">🎁 ${e.toUpperCase()}</button>`).join("")}<button class="btn purple" onclick="adminEventoGlobal()">🌐 EVENTO GLOBAL</button></div>
+    <h3>📢 Anunciar</h3>
+    <input id="annInput" placeholder="Escreva o anúncio aqui...">
+    <button class="btn blue" style="width:100%" onclick="adminAnunciar()">📢 ANUNCIAR PRA TODO MUNDO</button>`;
+  if(adminTab=="mundo") c=`
+    <h3>🌎 MUNDO / CLIMA / HORA</h3>
+    <h3>🌤️ Clima</h3><div class="grid">${COMMAND_DB.clima.map(cl=>`<button class="btn" onclick="adminSetClima('${cl}')">${cl.toUpperCase()}</button>`).join("")}</div>
+    <h3>🕐 Hora</h3><div class="grid">${COMMAND_DB.hora.map(h=>`<button class="btn" onclick="adminSetHora(${h})">${h}:00</button>`).join("")}</div>
+    <h3>🔒 Portão</h3><div class="grid"><button class="btn" onclick="adminTrancar()">🔒 TRANCAR</button><button class="btn green" onclick="adminDestrancar()">🔓 DESTRANCAR</button><button class="btn" onclick="adminBackup()">💾 BACKUP</button></div>`;
+  if(adminTab=="multi") c=`
+    <h3>🌐 MULTIPLAYER ADMIN</h3>
+    <p style="background:#FF0000;padding:8px;border-radius:8px">💻 Admin só no seu PC!</p>
+    <div class="grid"><button class="btn green" onclick="adminDarTodosPlayers()">💰 Dar $10K pra TODOS</button><button class="btn" onclick="adminEventoGlobal()">🎁 Evento Global</button><button class="btn blue" onclick="adminAnunciarGlobal()">📢 Anúncio Global</button><button class="btn red" onclick="adminBanTodos()">🚫 BANIR TODOS</button><button class="btn red" onclick="adminKickTodos()">👢 KICKAR TODOS</button><button class="btn" onclick="adminVersao()">❓ Ver Versão</button></div>
+    <p>Players reais online: <b>${Object.keys(mpPlayers).length+1}</b></p>`;
+  openPanel(`<h2>👑 ADMIN v${ADMIN_VERSION} 💻 SÓ NO MEU PC</h2><p style="font-size:12px">✅ Sem comando / - É só clicar! • God: ${godMode?"ON":"OFF"} • Martelo: <b style="color:#FFD700">${window.currentHammer||"Nenhum"}</b></p><div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">${tabBtns}</div><div id="adminLog" style="background:#111;border:2px solid #00FFFF;border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px">🟢 Admin v${ADMIN_VERSION} logado!</div>${c}`);
 }
-function adminQuick(cmd){let el=document.getElementById("adminCmd");if(el)el.value=cmd;execAdminCmd()}
 function adminLog(m){let el=document.getElementById("adminLog");if(el)el.innerHTML="✅ "+m+"<br>"+el.innerHTML}
-function execAdminCmd(){
- let input=document.getElementById("adminCmd");let raw=(input.value||"").trim();if(!raw)return;let low=raw.toLowerCase();let p=low.replace("/","").split(" ");let cmd=p[0],a1=p[1],a2=p[2],a3=p[3];
- if(cmd=="ajuda"){adminLog(`v${ADMIN_VERSION}: /dar dinheiro [VALOR] | /dar todos | /dar todos-players | /dar inf | /dar player [id] | /spawn [0-7] x[1-10] | /spawn 999 | /renda x1000 | /rebirth | /velocidade | /deus 999 | /voar | /noclip | /evento [${COMMAND_DB.evento.join("/")}] | /evento global | /clima | /hora | /teleport base [1-16] | /teleport xy | /anunciar global | /ban todos | /kick todos-players | /versao | /backup | /reset tudo`);return}
- if(cmd=="versao"){adminLog(`ADMIN v${ADMIN_VERSION}`);showMsg(`ADMIN v${ADMIN_VERSION}`);return}
- if(cmd=="dar"&&a1=="dinheiro"){let v=parseInt(a2)||0;money+=v;save();adminLog(`+$${v.toLocaleString()}`);showMsg(`💰 +$${v.toLocaleString()}`);return}
- if(cmd=="dar"&&a1=="inf"){money=999999999999;save();adminLog("💰 INFINITO!");showMsg("💰 DINHEIRO INFINITO!");return}
- if(cmd=="dar"&&a1=="todos"){owned.forEach(o=>scene.remove(o.mesh));owned=[];TYPES.forEach((t,i)=>{let b=makeBrainrot(t,-5+(i%4)*3,52-Math.floor(i/4)*3,.9);owned.push({mesh:b,type:i})});recalc();save();adminLog("🏆 Todos!");return}
- if(cmd=="dar"&&a1=="todos-players"){sendMp({type:"admin_event",text:"ADMIN DEU DINHEIRO PRA TODO MUNDO!",give:10000});money+=10000;adminLog("Deu $10K pra TODOS!");return}
- if(cmd=="dar"&&a1=="player"){let id=parseInt(a2)||0;let v=parseInt(a3)||10000;if(fakePlayers[id]){fakePlayers[id].money+=v;adminLog(`Deu $${v} para ${fakePlayers[id].name}`);renderAdmin()}return}
- if(cmd=="zerar"&&a1=="dinheiro"){money=0;save();adminLog("Dinheiro zerado");return}
- if(cmd=="spawn"){if(a1=="999"){for(let k=0;k<8;k++)setTimeout(()=>adminQuick("/spawn "+k),k*200);adminLog("Spawn 999!");return}if(a1=="rainbow"){money+=10000;adminLog("🌈 RAINBOW +$10K");return}if(a1=="lucky"){money+=5000;adminLog("🎲 LUCKY +$5K");return}let idx=parseInt(a1);if(isNaN(idx))idx=6;let qtd=1;if(a2&&a2.startsWith("x"))qtd=parseInt(a2.replace("x",""))||1;qtd=Math.min(qtd,10);for(let k=0;k<qtd;k++){if(owned.length>=8)break;let t=TYPES[idx]||TYPES[6];let b=makeBrainrot(t,-5+(owned.length%4)*3,52-Math.floor(owned.length/4)*3,.9);owned.push({mesh:b,type:idx})}recalc();save();adminLog(`Spawnou ${qtd}x ${(TYPES[idx]||TYPES[6]).n}`);return}
- if(cmd=="limpar"&&a1=="base"){owned.forEach(o=>scene.remove(o.mesh));owned=[];recalc();save();adminLog("Base limpa");return}
- if(cmd=="renda"){let mult=parseInt(a1.replace("x",""))||10;income*=mult;setTimeout(recalc,30000);adminLog(`Renda x${mult}`);return}
- if(cmd=="rebirth"){rebirth+=parseInt(a1)||1;recalc();save();adminLog(`Rebirth: ${rebirth}`);return}
- if(cmd=="velocidade"||cmd=="speed"){speedMult=parseFloat(a1)||1;save();adminLog(`Velocidade ${speedMult}x`);return}
- if(cmd=="deus"){if(a1=="999"){godMode=true;speedMult=999;adminLog("😇 GOD 999!");return}godMode=!godMode;adminLog(godMode?"😇 GOD ON":"😇 GOD OFF");return}
- if(cmd=="voar"){flyMode=!flyMode;adminLog(flyMode?"🕊️ VOAR ON":"🕊️ VOAR OFF");return}
- if(cmd=="noclip"){noclip=!noclip;adminLog(noclip?"👻 NOCLIP ON":"👻 NOCLIP OFF");return}
- if(cmd=="tamanho"){if(player)player.scale.setScalar(parseFloat(a1)||1);adminLog(`Tamanho ${a1}x`);return}
- if(cmd=="pulo"){velY=parseFloat(a1)||20;adminLog(`Pulo ${a1}`);return}
- if(cmd=="evento"){if(a1=="global"){sendMp({type:"admin_event",text:"EVENTO GLOBAL!",give:5000});money+=5000;adminLog("Evento Global!");return}let bonus={dourado:5000,sorte:5000,lucky:5000,rainbow:10000,meteoro:20000,tsunami:30000,natal:15000,admin:10000,halloween:12000,pascoa:8000,invasao:25000,apocalipse:50000};money+=(bonus[a1]||5000);announce(`🎁 EVENTO ${a1?.toUpperCase()}! +$${bonus[a1]||5000}`);if(a1=="dourado"){golden=true;spawnConveyor()}save();adminLog(`Evento ${a1}!`);return}
- if(cmd=="clima"){dayTime=a1=="noite"?0.8:a1=="por-do-sol"?0.4:a1=="chuva"?0.5:a1=="neve"?0.2:0;adminLog(`Clima: ${a1}`);return}
- if(cmd=="hora"){dayTime=(parseInt(a1)||12)/24;adminLog(`Hora: ${a1}:00`);return}
- if(cmd=="teleport"||cmd=="tp"){if(a1=="base"){let n=parseInt(a2)||1;let ang=((n-1)/16)*Math.PI*2;playerPos={x:Math.cos(ang)*52,z:Math.sin(ang)*52};adminLog(`Teleport Base ${n}`);return}if(a1=="xy"){playerPos={x:parseFloat(a2)||0,z:parseFloat(a3)||0};adminLog(`Teleport X:${a2} Z:${a3}`);return}if(a1=="esteira"){playerPos={x:0,z:8};adminLog("Teleport Esteira");return}if(a1=="arena"){playerPos={x:-35,z:-35};adminLog("Teleport Arena");return}if(a1=="loja"){playerPos={x:35,z:-35};adminLog("Teleport Loja");return}if(a1=="centro"){playerPos={x:0,z:0};adminLog("Teleport Centro");return}return}
- if(cmd=="trancar"){lockBase=true;adminLog("🔒 Trancado");return}
- if(cmd=="destrancar"){lockBase=false;adminLog("🔓 Destrancado");return}
- if(cmd=="anunciar"){if(a1=="global"){sendMp({type:"admin_event",text:raw.replace("/anunciar global ","").toUpperCase(),give:0});adminLog("Anúncio Global!");return}announce(raw.replace(/\/anunciar /i,"").toUpperCase());adminLog("Anúncio enviado");return}
- if(cmd=="kick"){if(a1=="todos-players"||a1=="todos"){sendMp({type:"kick",target:"all"});fakePlayers=[];adminLog("👢 Kickou todos!");renderAdmin();return}let id=parseInt(a1);if(fakePlayers[id]){adminLog(`👢 ${fakePlayers[id].name} kickado`);fakePlayers.splice(id,1);renderAdmin()}return}
- if(cmd=="ban"){if(a1=="todos"){sendMp({type:"ban",target:"all"});adminLog("🚫 Baniu todos!");return}let id=parseInt(a1);if(fakePlayers[id]){fakePlayers[id].banned=true;adminLog(`🚫 ${fakePlayers[id].name} BANIDO`);renderAdmin()}return}
- if(cmd=="unban"){let id=parseInt(a1);if(fakePlayers[id]){fakePlayers[id].banned=false;adminLog(`✅ Desbanido`);renderAdmin()}return}
- if(cmd=="backup"){localStorage.setItem("brb_backup",localStorage.getItem("brb3d"));adminLog("💾 Backup salvo");return}
- if(cmd=="reset"&&a1=="tudo"){money=0;rebirth=0;owned.forEach(o=>scene.remove(o.mesh));owned=[];recalc();save();localStorage.removeItem("brb3d");adminLog("SAVE RESETADO");return}
- adminLog("❌ Comando desconhecido: "+raw+" — /ajuda");
-}
+function adminGiveMoney(v){if(v<0){money=0;adminLog("Dinheiro zerado!")}else{money+=v;adminLog(`+$${v.toLocaleString()}`)}showMsg(`💰 +$${v.toLocaleString()}`);save();updateHUD();renderAdmin()}
+function adminGiveBrainrot(i){if(owned.length>=8){adminLog("Base cheia!");showMsg("❌ Base cheia!");return}let t=TYPES[i];let b=makeBrainrot(t,-5+(owned.length%4)*3,52-Math.floor(owned.length/4)*3,.9);owned.push({mesh:b,type:i});recalc();save();adminLog(`Ganhou ${t.n}!`);showMsg(`🎁 Ganhou ${t.n}!`);renderAdmin()}
+function adminGiveAll(){owned.forEach(o=>scene.remove(o.mesh));owned=[];TYPES.forEach((t,i)=>{let b=makeBrainrot(t,-5+(i%4)*3,52-Math.floor(i/4)*3,.9);owned.push({mesh:b,type:i})});recalc();save();adminLog("🏆 Ganhou TODOS!");showMsg("🏆 Ganhou TODOS!");renderAdmin()}
+function adminGiveRainbow(){money+=10000;adminLog("🌈 RAINBOW +$10K");showMsg("🌈 RAINBOW +$10K");renderAdmin()}
+function adminGiveLucky(){money+=5000;adminLog("🎲 LUCKY +$5K");showMsg("🎲 LUCKY +$5K");renderAdmin()}
+function adminGiveRebirth(v){rebirth+=v;recalc();save();adminLog(`+${v} Rebirth! Total: ${rebirth}`);renderAdmin()}
+function adminSetSpeed(v){speedMult=v;save();adminLog(`Velocidade ${v}x`);renderAdmin()}
+function adminGiveRenda(){income*=1000;setTimeout(recalc,30000);adminLog("Renda x1000!");renderAdmin()}
+function adminSetHammer(tipo){window.currentHammer=tipo;let nomes={normal:"🔨 HAMMER NORMAL",ban:"🚫 BAN HAMMER",freeze:"❄️ FREEZE HAMMER",nuke:"💣 NUKE HAMMER",money:"💰 MONEY HAMMER",slap:"👋 SLAP HAMMER"};adminLog(`Martelo: ${nomes[tipo]}`);showMsg(`🔨 Martelo: ${nomes[tipo]} - Clique no player!`);renderAdmin()}
+function adminUseHammer(i){let tipo=window.currentHammer||"normal";let pl=fakePlayers[i];if(!pl)return;if(tipo==="normal"){adminLog(`🔨 ${pl.name} kickado!`);showMsg(`🔨 ${pl.name} kickado!`);fakePlayers.splice(i,1)}if(tipo==="ban"){pl.banned=true;adminLog(`🚫 ${pl.name} BANIDO com BAN HAMMER!`);showMsg(`🚫 ${pl.name} BANIDO!`)}if(tipo==="freeze"){adminLog(`❄️ ${pl.name} CONGELADO!`);showMsg(`❄️ ${pl.name} congelado!`)}if(tipo==="nuke"){adminLog(`💣 ${pl.name} EXPLODIU!`);showMsg(`💣 ${pl.name} explodiu!`);fakePlayers.splice(i,1);money+=5000}if(tipo==="money"){pl.money+=10000;adminLog(`💰 Deu $10K pra ${pl.name}!`);showMsg(`💰 Deu $10K pra ${pl.name}!`)}if(tipo==="slap"){adminLog(`👋 Tapa em ${pl.name}!`);showMsg(`👋 Tapa em ${pl.name}!`)}renderAdmin()}
+function adminUseHammerReal(id){let tipo=window.currentHammer||"normal";let p=mpPlayers[id];if(!p)return;if(tipo==="ban"){sendMp({type:"ban",target:id});adminLog(`🚫 Baniu ${p.name} (real)!`)}if(tipo==="normal"){sendMp({type:"kick",target:id});adminLog(`🔨 Kickou ${p.name} (real)!`)}if(tipo==="money"){sendMp({type:"admin_event",text:`Ganhou $10K do Admin!`,give:10000});adminLog(`💰 Deu $10K pra ${p.name}!`)}showMsg(`🔨 Usou ${tipo} em ${p.name}!`);renderAdmin()}
+function adminNukeAll(){sendMp({type:"ban",target:"all"});fakePlayers=[];money+=20000;adminLog("💣 NUKE EM TODO MUNDO! +$20K");showMsg("💣 NUKE EM TODO MUNDO!");renderAdmin()}
+function adminDeleteBase(){owned.forEach(o=>scene.remove(o.mesh));owned=[];recalc();save();adminLog("🗑️ Base deletada!");renderAdmin()}
+function adminDeleteMoney(){money=0;save();adminLog("🗑️ Dinheiro deletado!");renderAdmin()}
+function adminDeleteRebirth(){rebirth=0;recalc();save();adminLog("🗑️ Rebirth deletado!");renderAdmin()}
+function adminDeleteSave(){money=0;rebirth=0;owned.forEach(o=>scene.remove(o.mesh));owned=[];recalc();save();localStorage.removeItem("brb3d");adminLog("🗑️ SAVE DELETADO!");renderAdmin()}
+function adminDeleteAllPlayers(){fakePlayers=[];sendMp({type:"kick",target:"all"});adminLog("🗑️ Todos deletados!");renderAdmin()}
+function adminDeleteOneBrainrot(){if(!owned.length){adminLog("Nenhum Brainrot!");return}let o=owned.pop();scene.remove(o.mesh);recalc();save();adminLog("🗑️ 1 Brainrot deletado!");renderAdmin()}
+function adminDeleteBrainrotIndex(i){let o=owned[i];scene.remove(o.mesh);owned.splice(i,1);recalc();save();adminLog(`🗑️ Deletou ${TYPES[o.type].n}`);renderAdmin()}
+function adminToggleGod(){godMode=!godMode;adminLog(godMode?"😇 GOD ON":"😇 GOD OFF");renderAdmin()}
+function adminToggleFly(){flyMode=!flyMode;adminLog(flyMode?"🕊️ VOAR ON":"🕊️ VOAR OFF");renderAdmin()}
+function adminToggleNoclip(){noclip=!noclip;adminLog(noclip?"👻 NOCLIP ON":"👻 NOCLIP OFF");renderAdmin()}
+function adminSetSize(v){if(player)player.scale.setScalar(v);adminLog(`Tamanho ${v}x`);renderAdmin()}
+function adminSuperJump(){velY=100;adminLog("🚀 SUPER PULO!")}
+function adminInvisivel(){if(player)player.visible=!player.visible;adminLog(player.visible?"👁️ Visível":"👻 Invisível!");renderAdmin()}
+function adminRainbow(){money+=10000;adminLog("🌈 RAINBOW!");renderAdmin()}
+function adminTeleportRandom(){playerPos.x=Math.random()*160-80;playerPos.z=Math.random()*160-80;adminLog(`Teleport! X:${Math.round(playerPos.x)} Z:${Math.round(playerPos.z)}`)}
+function adminRenascerRandom(){respawnRandom();adminLog("🔁 Renasceu!")}
+function adminDoEvento(e){let bonus={dourado:5000,sorte:5000,lucky:5000,rainbow:10000,meteoro:20000,tsunami:30000,natal:15000,admin:10000,halloween:12000,pascoa:8000,invasao:25000,apocalipse:50000};money+=(bonus[e]||5000);announce(`🎁 EVENTO ${e.toUpperCase()}!`);if(e=="dourado"){golden=true;spawnConveyor()}save();adminLog(`Evento ${e}! +$${bonus[e]||5000}`);renderAdmin()}
+function adminEventoGlobal(){sendMp({type:"admin_event",text:"EVENTO GLOBAL!",give:5000});money+=5000;adminLog("🌐 Evento Global!");renderAdmin()}
+function adminAnunciar(){let txt=document.getElementById("annInput")?.value||"OI GALERA!";announce(txt.toUpperCase());sendMp({type:"admin_event",text:txt.toUpperCase(),give:0});adminLog(`Anunciou: ${txt}`);renderAdmin()}
+function adminAnunciarGlobal(){sendMp({type:"admin_event",text:"OI GALERA! SOU O ADMIN!",give:0});adminLog("📢 Anúncio Global!");renderAdmin()}
+function adminSetClima(cl){dayTime=cl=="noite"?0.8:cl=="por-do-sol"?0.4:cl=="chuva"?0.5:cl=="neve"?0.2:0;adminLog(`Clima: ${cl}`);renderAdmin()}
+function adminSetHora(h){dayTime=h/24;adminLog(`Hora: ${h}:00`);renderAdmin()}
+function adminTrancar(){lockBase=true;adminLog("🔒 Trancado!");renderAdmin()}
+function adminDestrancar(){lockBase=false;adminLog("🔓 Destrancado!");renderAdmin()}
+function adminBackup(){localStorage.setItem("brb_backup",localStorage.getItem("brb3d"));adminLog("💾 Backup salvo!");renderAdmin()}
+function adminDarTodosPlayers(){sendMp({type:"admin_event",text:"ADMIN DEU DINHEIRO PRA TODO MUNDO!",give:10000});money+=10000;adminLog("Deu $10K pra TODOS!");renderAdmin()}
+function adminBanTodos(){sendMp({type:"ban",target:"all"});adminLog("🚫 Baniu todo mundo!");renderAdmin()}
+function adminKickTodos(){sendMp({type:"kick",target:"all"});fakePlayers=[];adminLog("👢 Kickou todo mundo!");renderAdmin()}
+function adminVersao(){adminLog(`ADMIN v${ADMIN_VERSION}`);showMsg(`ADMIN v${ADMIN_VERSION}`)}
 // MAPA
 let basesPos=[];for(let i=0;i<16;i++){let a=(i/16)*Math.PI*2;basesPos.push({x:Math.cos(a)*52,z:Math.sin(a)*52,mine:i==0})}
 function worldToMap(x,z,size){return{mx:(x+100)/200*size,my:(z+100)/200*size}}
@@ -197,35 +306,46 @@ function openBigMap(){document.getElementById("bigMap").style.display="flex";dra
 function closeBigMap(){document.getElementById("bigMap").style.display="none";if(window.bigMapInterval)clearInterval(window.bigMapInterval)}
 function clickBigMap(e){let cv=document.getElementById("bigMapCanvas");let r=cv.getBoundingClientRect();let mx=(e.clientX-r.left)/r.width*500;let my=(e.clientY-r.top)/r.height*500;let w=mapToWorld(mx,my,500);document.getElementById("mapInfo").innerText=`📍 X:${Math.round(w.x)} Z:${Math.round(w.z)} — Teleportando...`;teleportTo(w.x,w.z);setTimeout(closeBigMap,600)}
 function teleportTo(x,z){playerPos.x=x;playerPos.z=z;showMsg(`📍 Teleportado para X:${Math.round(x)} Z:${Math.round(z)}`);closeBigMap()}
-// MULTIPLAYER
-let myId="P"+Math.floor(Math.random()*99999),myName="Player_"+Math.floor(Math.random()*9999),mpPlayers={},mpChannel=null,mpMeshes={};
-try{
- mpChannel=new BroadcastChannel("brb_multiplayer_v999");
- mpChannel.onmessage=(e)=>{let d=e.data;if(!d||d.id===myId)return;
-  if(d.type=="join"){mpPlayers[d.id]={name:d.name,x:d.x,z:d.z,money:d.money||0};mpToast(`🌐 ${d.name} entrou!`);updateMpList();sendMp({type:"join",name:myName,x:playerPos.x,z:playerPos.z,money:money})}
-  if(d.type=="move"){if(!mpPlayers[d.id])mpPlayers[d.id]={name:d.name||"Player",x:d.x,z:d.z};mpPlayers[d.id].x=d.x;mpPlayers[d.id].z=d.z;mpPlayers[d.id].name=d.name;updateMpList()}
-  if(d.type=="chat"){addChatMsg(d.name,d.text);mpToast(`💬 ${d.name}: ${d.text}`)}
-  if(d.type=="steal"){announce(`🚨 ${d.name} ROUBOU ${d.brainrot}!`)}
-  if(d.type=="admin_event"){announce(`👑 ADMIN v${ADMIN_VERSION}: ${d.text}`);if(d.give){money+=d.give;showMsg(`🎁 Admin deu +$${d.give} pra TODO MUNDO!`)}}
-  if(d.type=="ban"&&d.target==="all"){showMsg("🚫 VOCÊ FOI BANIDO PELO ADMIN!");setTimeout(()=>{document.body.innerHTML="<h1 style='text-align:center;margin-top:100px'>🚫 VOCÊ FOI BANIDO<br>Recarregue a página</h1>"},1500)}
-  if(d.type=="kick"&&d.target==="all"){showMsg("👢 VOCÊ FOI KICKADO!");setTimeout(()=>location.reload(),1500)}
-  if(d.type=="leave"){delete mpPlayers[d.id];updateMpList()}
- };
- setTimeout(()=>sendMp({type:"join",name:myName,x:playerPos.x,z:playerPos.z,money:money}),500);
- setInterval(()=>sendMp({type:"join",name:myName,x:playerPos.x,z:playerPos.z,money:money}),5000);
-}catch(e){}
-function sendMp(obj){if(mpChannel){try{mpChannel.postMessage({id:myId,...obj})}catch(e){}}}
-function mpToast(t){let el=document.getElementById("mpToast");if(!el)return;el.innerText=t;el.style.display="block";setTimeout(()=>el.style.display="none",3000)}
-function updateMpList(){let el=document.getElementById("mpList");if(!el)return;let count=Object.keys(mpPlayers).length+1;document.getElementById("mpCount").innerText=count+" ONLINE";let html=`<div>🟢 <b style="color:#FFD700">Você (${myName})</b> - $${Math.floor(money).toLocaleString()}</div>`;Object.entries(mpPlayers).forEach(([id,p])=>{html+=`<div>🔵 ${p.name} <button style="background:#FF4444;color:#fff;border-radius:6px;padding:1px 6px;font-size:10px" onclick="stealFromPlayer('${id}')">😈 ROUBAR</button></div>`});if(count<3)html+=`<div style="color:#888">🤖 + ${fakePlayers.length} bots</div>`;el.innerHTML=html}
-setInterval(()=>{if(typeof playerPos!=="undefined")sendMp({type:"move",name:myName,x:playerPos.x,z:playerPos.z,money:money});updateMpList()},200);
+// MULTIPLAYER REAL - PeerJS
+let myId="P"+Math.floor(Math.random()*99999),myName="Player_"+Math.floor(Math.random()*9999),mpPlayers={},mpMeshes={},peer=null,myRoomCode="",connections=[],isHost=false;
+document.getElementById("myNameLabel").innerText=myName;
+function mpToast(t){let el=document.getElementById("mpToast");if(!el)return;el.innerText=t;el.style.display="block";setTimeout(()=>el.style.display="none",3500)}
+function mpSetStatus(t){let el=document.getElementById("mpStatus");if(el)el.innerText=t}
+function createRoom(){
+ myRoomCode="SALA-"+Math.floor(1000+Math.random()*9000);isHost=true;mpSetStatus("🟡 Criando sala "+myRoomCode+"...");showMsg("🏠 Criando sala "+myRoomCode+"...");
+ peer=new Peer(myRoomCode);
+ peer.on("open",(id)=>{mpSetStatus("🟢 SALA CRIADA! Código: "+myRoomCode);document.getElementById("roomCode").innerText=myRoomCode;document.getElementById("roomCodeBox").style.display="block";mpToast("🏠 Sala "+myRoomCode+" criada!");addChatMsg("SISTEMA","🏠 Sala criada! Código: "+myRoomCode)});
+ peer.on("connection",(conn)=>{connections.push(conn);conn.on("open",()=>{conn.send({type:"welcome",name:myName});mpToast("🌐 Um amigo entrou!")});conn.on("data",(data)=>handleMpData(data,conn));conn.on("close",()=>{connections=connections.filter(c=>c!==conn);updateMpList()})});
+ peer.on("error",(err)=>{mpSetStatus("❌ Erro: "+err.type);showMsg("❌ Erro ao criar sala. Tente de novo!")});
+}
+function joinRoomPrompt(){let code=prompt("Digite o código da sala:\nEx: SALA-1234");if(!code)return;joinRoom(code.trim().toUpperCase())}
+function joinRoom(code){
+ myRoomCode=code;isHost=false;mpSetStatus("🟡 Entrando na sala "+code+"...");showMsg("🚪 Entrando na sala "+code+"...");
+ peer=new Peer();
+ peer.on("open",(id)=>{let conn=peer.connect(code);connections.push(conn);conn.on("open",()=>{mpSetStatus("🟢 CONECTADO na sala "+code+"!");document.getElementById("roomCode").innerText=code;document.getElementById("roomCodeBox").style.display="block";mpToast("✅ Entrou na sala "+code+"!");addChatMsg("SISTEMA","✅ Entrou na sala "+code);conn.send({type:"join",id:myId,name:myName,x:playerPos.x,z:playerPos.z,money:money})});conn.on("data",(data)=>handleMpData(data,conn));conn.on("close",()=>{mpSetStatus("🔴 Desconectado")})});
+ peer.on("error",(err)=>{mpSetStatus("❌ Sala não encontrada!");showMsg("❌ Sala não encontrada! Verifique o código.")});
+}
+function copyRoomCode(){if(navigator.clipboard)navigator.clipboard.writeText(myRoomCode);showMsg("📋 Código copiado: "+myRoomCode)}
+function sendMp(obj){let data={id:myId,...obj};connections.forEach(conn=>{try{if(conn.open)conn.send(data)}catch(e){}})}
+function handleMpData(d,conn){
+ if(!d||d.id===myId)return;
+ if(d.type=="join"||d.type=="move"){if(!mpPlayers[d.id])mpPlayers[d.id]={name:d.name,x:d.x,z:d.z,money:d.money||0};mpPlayers[d.id].x=d.x;mpPlayers[d.id].z=d.z;mpPlayers[d.id].name=d.name;mpPlayers[d.id].money=d.money||0;updateMpList();if(isHost&&d.type=="move"){connections.forEach(c=>{if(c!==conn&&c.open)c.send(d)})}}
+ if(d.type=="welcome"){mpToast("🌐 Conectado com "+d.name+"!")}
+ if(d.type=="chat"){addChatMsg(d.name,d.text);mpToast(`💬 ${d.name}: ${d.text}`);if(isHost)connections.forEach(c=>{if(c!==conn&&c.open)c.send(d)})}
+ if(d.type=="steal"){announce(`🚨 ${d.name} ROUBOU ${d.brainrot}!`)}
+ if(d.type=="admin_event"){announce(`👑 ADMIN: ${d.text}`);if(d.give){money+=d.give;showMsg(`🎁 Admin deu +$${d.give} pra TODO MUNDO!`)}}
+ if(d.type=="ban"&&d.target==="all"){showMsg("🚫 VOCÊ FOI BANIDO!");setTimeout(()=>{document.body.innerHTML="<h1 style='text-align:center;margin-top:100px'>🚫 VOCÊ FOI BANIDO<br>Recarregue a página</h1>"},1500)}
+ if(d.type=="kick"&&d.target==="all"){showMsg("👢 VOCÊ FOI KICKADO!");setTimeout(()=>location.reload(),1500)}
+}
+function updateMpList(){let el=document.getElementById("mpList");if(!el)return;let count=Object.keys(mpPlayers).length+1;document.getElementById("mpCount").innerText=count+" ONLINE";let html=`<div>🟢 <b style="color:#FFD700">Você (${myName})</b> - $${Math.floor(money).toLocaleString()}</div>`;Object.entries(mpPlayers).forEach(([id,p])=>{html+=`<div>🔵 ${p.name} <button style="background:#FF4444;color:#fff;border-radius:6px;padding:1px 6px;font-size:10px" onclick="stealFromPlayer('${id}')">😈 ROUBAR</button></div>`});if(count<2)html+=`<div style="color:#888">🤖 + ${fakePlayers.length} bots</div>`;el.innerHTML=html}
 function openChat(){document.getElementById("chatBox").style.display="block"}
 function closeChat(){document.getElementById("chatBox").style.display="none"}
 function sendChat(){let inp=document.getElementById("chatIn");let txt=inp.value.trim();if(!txt)return;addChatMsg("Você",txt);sendMp({type:"chat",name:myName,text:txt});inp.value=""}
 function addChatMsg(name,text){let box=document.getElementById("chatMsgs");if(!box)return;box.innerHTML+=`<div><b style="color:#00FFFF">${name}:</b> ${text}</div>`;box.scrollTop=box.scrollHeight}
-function copyMpLink(){if(navigator.clipboard)navigator.clipboard.writeText(location.href);showMsg("🔗 Link copiado! Manda pro amigo!");mpToast("🔗 Link copiado!")}
+function copyMpLink(){if(navigator.clipboard)navigator.clipboard.writeText(location.href);showMsg("🔗 Link copiado!")}
 function stealFromPlayer(id){let p=mpPlayers[id];if(!p)return;if(Math.random()<0.6){money+=1000;showMsg(`😈 Roubou $1000 de ${p.name}!`);sendMp({type:"steal",name:myName,brainrot:"$1000 de "+p.name});sendMp({type:"chat",name:"SISTEMA",text:`🚨 ${myName} roubou $1000 de ${p.name}!`})}else showMsg(`🛡️ ${p.name} se defendeu!`);save()}
 function updateMpMeshes(){if(!scene)return;Object.entries(mpPlayers).forEach(([id,p])=>{if(!mpMeshes[id]){let g=new THREE.Group();let body=new THREE.Mesh(new THREE.BoxGeometry(1,1.6,.6),new THREE.MeshLambertMaterial({color:0xFF00FF}));body.position.y=1;g.add(body);let head=new THREE.Mesh(new THREE.BoxGeometry(.9,.9,.9),new THREE.MeshLambertMaterial({color:0xFFDBAC}));head.position.y=2.2;g.add(head);scene.add(g);mpMeshes[id]=g;let c=document.createElement("canvas");c.width=256;c.height=64;let ctx=c.getContext("2d");ctx.fillStyle="#000";ctx.fillRect(0,0,256,64);ctx.fillStyle="#00FFFF";ctx.font="900 28px Arial";ctx.textAlign="center";ctx.fillText(p.name,128,42);let spr=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c)}));spr.scale.set(4,1,1);spr.position.y=3.2;g.add(spr)}mpMeshes[id].position.set(p.x,0,p.z)});Object.keys(mpMeshes).forEach(id=>{if(!mpPlayers[id]){scene.remove(mpMeshes[id]);delete mpMeshes[id]}})}
-// CONTROLES
+setInterval(()=>{if(typeof playerPos!=="undefined"&&connections.length>0)sendMp({type:"move",name:myName,x:playerPos.x,z:playerPos.z,money:money});updateMpList()},200);
 function startGame(){document.getElementById("start").style.display="none";init()}
 addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true;if(e.key==" ")jump();if(e.key.toLowerCase()=="e")interact()});
 addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false);
@@ -244,6 +364,7 @@ function animate(){
  let sp=7*speedMult;let dx=Math.sin(camAngle)*fwd+Math.cos(camAngle)*side;let dz=Math.cos(camAngle)*fwd-Math.sin(camAngle)*side;
  playerPos.x+=dx*sp*.016;playerPos.z+=dz*sp*.016;playerPos.x=Math.max(-100,Math.min(100,playerPos.x));playerPos.z=Math.max(-100,Math.min(100,playerPos.z));
  velY-=25*.016;player.position.y+=velY*.016;if(player.position.y<=0){player.position.y=0;velY=0;onGround=true}
+ if(player.position.y<-10){dieAndRespawn("Caiu do mapa!");player.position.y=0;velY=0}
  player.position.set(playerPos.x,player.position.y,playerPos.z);if(dx||dz)player.rotation.y=Math.atan2(dx,dz);
  camera.position.set(playerPos.x+Math.sin(camAngle)*12,player.position.y+6+camPitch*6,playerPos.z+Math.cos(camAngle)*12);camera.lookAt(playerPos.x,2,playerPos.z);
  let t=Date.now()*.002;conveyor.forEach((c,i)=>{c.mesh.position.x+=.15;if(c.mesh.position.x>60)c.mesh.position.x=-60;c.mesh.rotation.y+=.02;c.mesh.position.y=Math.sin(t+i)*.2});
